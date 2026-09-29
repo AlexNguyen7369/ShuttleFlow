@@ -5,3 +5,5 @@ data/
 *.iml
 .DS_Store
 context.md
+definitions.md
+video_script.md
