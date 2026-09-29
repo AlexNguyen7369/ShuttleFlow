@@ -5,6 +5,7 @@
 2. 2026-09-28 — Alex Nguyen — Pushed the ShuttleFlow app repo with definitions.md and video_script.md added to its .gitignore.
 3. 2026-09-28 — Alex Nguyen — Added the add-endpoint project skill, the reviewer and test-writer agents, and docs/features specs 01-08, and removed trailing whitespace in HomeController.
 4. 2026-09-29 — Alex Nguyen — Implemented feature 02 (GET /slots filtering by providerId and sessionType, 10-per-page LIMIT/OFFSET pagination, 400 on bad input) with 18 tests, README docs and reviewer PASS.
+5. 2026-09-29 — Alex Nguyen — Updated the stale test note in CLAUDE.md now that src/test exists.
 
 ## What's next
 **Resolve the remaining open items in docs/decisions.md, starting with PostgreSQL vs H2 for the database.**
