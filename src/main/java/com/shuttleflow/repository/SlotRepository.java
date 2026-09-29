@@ -34,7 +34,7 @@ public class SlotRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<SlotDto> findAvailable(Long providerId, String providerType, int limit, int offset) {
+    public List<SlotDto> findAvailable(Long providerId, String providerType, int limit, long offset) {
         StringBuilder sql = new StringBuilder(FIND_AVAILABLE_SELECT_SQL);
         List<Object> params = new ArrayList<>();
         if (providerId != null) {
