@@ -70,3 +70,7 @@ Work through every step in order. Don't skip ahead. `CLAUDE.md` wins on any conf
   - Endpoint contract (method, path, request, response, status codes)
   - Tests added (criterion → test)
   - Reviewer verdict, plus any open questions
+- [ ] Record it where it belongs (don't append implementation logs to the feature file):
+  - Put the same summary in the commit message body (and PR description, if any).
+  - Add or update a one-line `Status: implemented` at the top of the feature file; edit its criteria only if the requirement itself changed.
+  - Log any decision made along the way as one line in `docs/decisions.md`.
