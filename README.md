@@ -53,6 +53,22 @@ curl http://localhost:8080/slots
 # [{"slotId":1,"providerName":"Court 3","serviceName":"Singles Court Rental","startTime":"2026-09-27T09:00:00","endTime":"2026-09-27T10:00:00","price":20.00}, ...]
 ```
 
+### `GET /slots`
+
+Open slots ordered by `startTime`, 10 per page (SQL `LIMIT`/`OFFSET`).
+
+| Param | Default | Meaning |
+|---|---|---|
+| `page` | `1` | 1-based page number |
+| `providerId` | — | Only slots for this provider (coach openings) |
+| `sessionType` | — | `OPEN_PLAY` (court providers) or `COACHING` (coach providers) |
+
+Filters combine with each other and with `page`. A page past the last returns `200` with `[]`. `page` below 1 or not a number, or an unknown `sessionType`, returns `400` with `{"error": "..."}`.
+
+```bash
+curl "http://localhost:8080/slots?sessionType=COACHING&page=1"
+```
+
 ## Project structure
 
 ```
