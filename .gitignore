@@ -7,3 +7,6 @@ data/
 context.md
 definitions.md
 video_script.md
+
+# Claude Code local settings
+.claude/settings.local.json
