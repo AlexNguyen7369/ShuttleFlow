@@ -22,7 +22,7 @@ public class SlotService {
             throw new InvalidRequestException("page must be 1 or greater.");
         }
         String providerType = toProviderType(sessionType);
-        return slotRepository.findAvailable(providerId, providerType, PAGE_SIZE, (page - 1) * PAGE_SIZE);
+        return slotRepository.findAvailable(providerId, providerType, PAGE_SIZE, (long) (page - 1) * PAGE_SIZE);
     }
 
     private String toProviderType(String sessionType) {

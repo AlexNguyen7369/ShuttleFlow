@@ -107,6 +107,14 @@ class SlotControllerBrowseTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
+    @Test
+    void hugePageNumber_returnsOkWithEmptyList() throws Exception {
+        openSlots(courtId, 12, 0);
+        mvc.perform(get("/slots").param("page", String.valueOf(Integer.MAX_VALUE)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
     // --- filters ---
 
     @Test
