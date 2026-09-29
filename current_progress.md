@@ -2,6 +2,7 @@
 
 ## Completed
 1. 2026-09-28 — Alex Nguyen — Added CLAUDE.md (stack, hard rules, layout, build/test, conventions) and docs/decisions.md and docs/schema-notes.md distilled from the Milestone 1 PDF.
+2. 2026-09-28 — Alex Nguyen — Pushed the ShuttleFlow app repo with definitions.md and video_script.md added to its .gitignore.
 
 ## What's next
 **Resolve the open items in docs/decisions.md, starting with PostgreSQL vs H2 for the database.**
