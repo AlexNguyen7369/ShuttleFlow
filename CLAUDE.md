@@ -48,7 +48,7 @@ Run from `ShuttleFlow/ShuttleFlow/`:
 ```bash
 mvn spring-boot:run        # start on http://localhost:8080
 mvn clean package          # build the jar into target/
-mvn test                   # run tests (none exist yet — src/test is empty/absent)
+mvn test                   # run tests (src/test/java/com/shuttleflow/)
 ```
 
 Requires JDK 17+ and Maven 3.9+. Smoke check: `curl localhost:8080/` and `curl localhost:8080/slots`.
