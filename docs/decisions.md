@@ -55,4 +55,4 @@ Milestone 1 itself is only the design + a read-only skeleton (`GET /`, `GET /slo
 3. **Spec typo in the double-booking paragraph.** "enforced now through java, but through the database" almost certainly means *not* through Java, but through the database. The implementation follows that reading.
 4. **Role naming.** The roles table says "Admin" for coach/court manager, but the schema stores `PROVIDER`. Keep `PROVIDER` in the DB.
 5. **Diagrams not captured.** The block diagram (page 2) and ER diagram (page 3) are images in the PDF; their content was not extracted here. Check them against `schema-notes.md`.
-6. **Session type filter.** The spec filters by "open play / coaching" but the schema has no explicit session-type column; it is implied by `providers.type` (`COURT`/`COACH`) and `services.name`. Decide before building the filter.
+6. **Session type filter.** The spec filters by "open play / coaching" but the schema has no explicit session-type column; it is implied by `providers.type` (`COURT`/`COACH`) and `services.name`. **Resolved 2026-09-29:** filter on `providers.type` — `OPEN_PLAY` = `COURT`, `COACHING` = `COACH`; no schema change.
