@@ -1,0 +1,18 @@
+# Frontend scaffold — Milestone 2
+
+The initial frontend entry point is `index.html`. It provides a deliberately
+small, static landing page while the Milestone 2 web interface is being
+implemented.
+
+The directory is reserved for the future home, login, slot
+browsing/filtering, booking, confirmation, customer appointments/cancellation,
+and provider workflows.
+
+The UI must call the existing/new REST controllers and preserve the flow:
+
+```text
+UI → Controller → Service → Repository → Database → DTO response → UI
+```
+
+This solves the M2 usable-web-interface requirement while leaving the M1
+backend behavior intact until a frontend technology is selected.
