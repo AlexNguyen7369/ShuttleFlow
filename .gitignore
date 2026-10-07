@@ -1,0 +1,13 @@
+target/
+data/
+Milestone2/
+*.class
+.idea/
+*.iml
+.DS_Store
+context.md
+definitions.md
+video_script.md
+
+# Claude Code local settings
+.claude/settings.local.json
