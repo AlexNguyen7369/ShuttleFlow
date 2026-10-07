@@ -1,0 +1,236 @@
+[
+  {
+    "id": "M1-01",
+    "title": "Resolve PostgreSQL vs H2 database decision",
+    "detail": "PostgreSQL is the project target; H2 remains transitional local/test infrastructure until the runtime migration is implemented.",
+    "status": "done",
+    "source": "ShuttleFlow/docs/decisions.md; ShuttleFlow/README.md",
+    "milestone": "M1"
+  },
+  {
+    "id": "M1-02",
+    "title": "Verify the Milestone 1 relational schema contract",
+    "detail": "The implemented schema and relational-schema table are authoritative; PDF time-check and double-booking wording inconsistencies are documented as resolved interpretations.",
+    "status": "done",
+    "source": "ShuttleFlow/docs/schema-notes.md; ShuttleFlow/src/main/resources/schema.sql",
+    "milestone": "M1"
+  },
+  {
+    "id": "M1-03",
+    "title": "Complete Milestone 1 architecture and schema evidence",
+    "detail": "The layered controller \u2192 service \u2192 repository \u2192 database flow, ER/schema notes, and request/response path are documented for the read-only skeleton.",
+    "status": "done",
+    "source": "ShuttleFlow/README.md; ShuttleFlow/docs/schema-notes.md; ShuttleFlow/docs/decisions.md",
+    "milestone": "M1"
+  },
+  {
+    "id": "M1-04",
+    "title": "Run and record the Milestone 1 verification pass",
+    "detail": "M1 tests and GET / plus GET /slots were verified, including the 10-item SQL LIMIT/OFFSET page and provider/sessionType filters.",
+    "status": "done",
+    "source": "ShuttleFlow/AGENTS.md; ShuttleFlow/README.md; mvn test",
+    "milestone": "M1"
+  },
+  {
+    "id": "M1-05",
+    "title": "Read-only home endpoint implemented",
+    "detail": "GET / returns the app name and current open-slot count through the layered Spring Boot flow.",
+    "status": "done",
+    "source": "ShuttleFlow/README.md",
+    "milestone": "M1"
+  },
+  {
+    "id": "M1-06",
+    "title": "Read-only slot browsing implemented",
+    "detail": "GET /slots supports provider/session filters and 10-per-page SQL LIMIT/OFFSET pagination with validation.",
+    "status": "done",
+    "source": "ShuttleFlow/docs/features/02-browse-and-filter-slots.md; current_progress.md",
+    "milestone": "M1"
+  },
+  {
+    "id": "M2-01",
+    "title": "Milestone 2 backend scaffold created",
+    "detail": "Auth, appointment, provider, repository, DTO, session, and exception components are present as the implementation locations for M2.",
+    "status": "done",
+    "source": "ShuttleFlow/src/main/java/com/shuttleflow",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-02",
+    "title": "Milestone 2 frontend entry point scaffolded",
+    "detail": "A static frontend entry point and landing-page stylesheet exist under frontend/; feature screens remain to be implemented.",
+    "status": "done",
+    "source": "ShuttleFlow/frontend/index.html; ShuttleFlow/frontend/src/styles.css",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-03",
+    "title": "Review Milestone 2 assignment PDF against project docs",
+    "detail": "The checklist, definitions, and milestone requirements were reconciled with the two-page booking and concurrency assignment PDF.",
+    "status": "done",
+    "source": "ShuttleFlow/Milestone2/CMPE172_Milestone2_Booking_and_Concurrency.pdf; ShuttleFlow/Milestone2",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-04",
+    "title": "Freeze remaining M2 design decisions",
+    "detail": "Choose BOOKED versus CONFIRMED, decide whether COMPLETED is derived or stored, define cancellation/rebooking semantics, choose the isolation level, and select optimistic versioning or PostgreSQL row locking.",
+    "status": "done",
+    "source": "ShuttleFlow/Milestone2/milestone2.md; ShuttleFlow/docs/decisions.md",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-05",
+    "title": "Migrate the runtime database foundation to PostgreSQL",
+    "detail": "Add the PostgreSQL driver/configuration, preserve portable schema constraints, add any booking version/state columns, and keep H2 only in an explicit test profile if needed.",
+    "status": "doing",
+    "source": "ShuttleFlow/Milestone2/m2-checklist.md; ShuttleFlow/src/main/resources/application.properties",
+    "milestone": "M2",
+    "started": "2026-10-07T01:17:50-07:00"
+  },
+  {
+    "id": "M2-06",
+    "title": "Replace seed passwords with BCrypt hashes and test accounts",
+    "detail": "Add BCrypt support, use non-placeholder hashes, and provide repeatable customer/provider test accounts without exposing plaintext passwords.",
+    "status": "doing",
+    "source": "ShuttleFlow/Milestone2/milestone2.md; ShuttleFlow/src/main/resources/seed.sql",
+    "milestone": "M2",
+    "started": "2026-10-07T01:17:50-07:00"
+  },
+  {
+    "id": "M2-07",
+    "title": "Harden global errors and shared validation",
+    "detail": "Standardize safe 400/401/403/404/409 responses and validate IDs, credentials, dates, times, enums, relationships, and state transitions without leaking stack traces or SQL details.",
+    "status": "backlog",
+    "source": "ShuttleFlow/Milestone2/m2-checklist.md; ShuttleFlow/src/main/java/com/shuttleflow/controller/ApiExceptionHandler.java",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-08",
+    "title": "Implement customer and provider session login",
+    "detail": "Implement POST /auth/login and provider login with BCrypt verification, generic invalid-credential behavior, server-side sessions, logout if selected, and provider linkage.",
+    "status": "backlog",
+    "source": "ShuttleFlow/docs/features/01-player-login.md; ShuttleFlow/docs/features/06-provider-login.md",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-09",
+    "title": "Enforce session RBAC and ownership boundaries",
+    "detail": "Return 401 for unauthenticated requests and 403 for wrong roles; ensure customers and providers can only access their permitted resources.",
+    "status": "backlog",
+    "source": "ShuttleFlow/Milestone2/milestone2.md",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-10",
+    "title": "Complete available-slot browse, filter, and pagination flow",
+    "detail": "Preserve M1 provider/sessionType filters and SQL LIMIT 10 OFFSET pagination, then add provider, service, and/or date filters required by the M2 API contract.",
+    "status": "backlog",
+    "source": "ShuttleFlow/docs/features/02-browse-and-filter-slots.md; ShuttleFlow/Milestone2/milestone2.md",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-11",
+    "title": "Implement customer booking endpoint",
+    "detail": "Implement POST /appointments for authenticated customers with open/future slot validation, service relationship checks, 201 success, and safe 404/409 conflict behavior.",
+    "status": "backlog",
+    "source": "ShuttleFlow/docs/features/03-book-a-slot.md; ShuttleFlow/Milestone2/milestone2.md",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-12",
+    "title": "Make booking transactional and race-safe",
+    "detail": "Use @Transactional, the selected isolation/concurrency strategy, the UNIQUE(slot_id) backstop, safe conflict mapping, and bounded retry only where appropriate.",
+    "status": "backlog",
+    "source": "ShuttleFlow/Milestone2/CMPE172_Milestone2_Booking_and_Concurrency.pdf; ShuttleFlow/Milestone2/m2definitions.md",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-13",
+    "title": "Implement customer upcoming and history appointments",
+    "detail": "Implement GET /appointments with caller-scoped upcoming/history views, deterministic ordering, statuses, and empty-list behavior.",
+    "status": "backlog",
+    "source": "ShuttleFlow/docs/features/04-view-my-bookings.md; ShuttleFlow/Milestone2/milestone2.md",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-14",
+    "title": "Implement owner-only appointment cancellation",
+    "detail": "Implement DELETE /appointments/{id} with owner checks, eligible-date validation, atomic slot reavailability, and safe handling of cancelled-slot uniqueness/rebooking.",
+    "status": "backlog",
+    "source": "ShuttleFlow/docs/features/05-cancel-appointment.md; ShuttleFlow/Milestone2/milestone2.md",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-15",
+    "title": "Implement provider availability creation and removal",
+    "detail": "Implement owned-service POST/DELETE provider slot operations with future/time-range validation, duplicate conflicts, ownership checks, and active-appointment removal protection.",
+    "status": "backlog",
+    "source": "ShuttleFlow/docs/features/07-manage-availability.md; ShuttleFlow/Milestone2/milestone2.md",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-16",
+    "title": "Implement provider appointment viewing",
+    "detail": "Implement GET /provider/appointments scoped to the authenticated provider, excluding cancelled records and including booking customer name/email.",
+    "status": "backlog",
+    "source": "ShuttleFlow/docs/features/08-view-provider-appointments.md; ShuttleFlow/Milestone2/milestone2.md",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-17",
+    "title": "Build customer web workflow",
+    "detail": "Add home, login, slot browse/filter, booking form, confirmation, appointment list/history, and cancellation screens against stable endpoints.",
+    "status": "backlog",
+    "source": "ShuttleFlow/Milestone2/milestone2.md; ShuttleFlow/frontend",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-18",
+    "title": "Build provider web workflow",
+    "detail": "Add provider login, availability creation/removal, and provider appointment screens with role-aware navigation and errors.",
+    "status": "backlog",
+    "source": "ShuttleFlow/Milestone2/milestone2.md; ShuttleFlow/frontend",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-19",
+    "title": "Add Milestone 2 service unit tests",
+    "detail": "Cover booking rules, validation, role checks, owner-only cancellation, provider ownership, state transitions, and conflict handling.",
+    "status": "backlog",
+    "source": "ShuttleFlow/Milestone2/m2-checklist.md; ShuttleFlow/src/test/java/com/shuttleflow/service/M2ServiceRulesTest.java",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-20",
+    "title": "Add endpoint and integration coverage for every M2 route",
+    "detail": "Cover login/session behavior, 401/403/404/409 responses, customer/provider isolation, database effects, and frontend-facing endpoint contracts.",
+    "status": "backlog",
+    "source": "ShuttleFlow/Milestone2/m2-checklist.md; ShuttleFlow/src/test/java/com/shuttleflow/controller/M2EndpointIntegrationTest.java",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-21",
+    "title": "Prove the two-customer same-slot race",
+    "detail": "Run two concurrent booking attempts and assert exactly one succeeds, the other receives 409, one active appointment remains, and slot state is consistent.",
+    "status": "backlog",
+    "source": "ShuttleFlow/Milestone2/CMPE172_Milestone2_Booking_and_Concurrency.pdf; ShuttleFlow/src/test/java/com/shuttleflow/concurrency/ConcurrentBookingTest.java",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-22",
+    "title": "Update README, feature contracts, decisions, and M2 report",
+    "detail": "Make setup, endpoints, statuses, database choice, ACID/isolation strategy, concurrency proof, UI flow, and implementation evidence agree with the final code.",
+    "status": "backlog",
+    "source": "ShuttleFlow/Milestone2/m2-checklist.md; ShuttleFlow/docs; ShuttleFlow/README.md",
+    "milestone": "M2"
+  },
+  {
+    "id": "M2-23",
+    "title": "Run final M2 build and submission verification",
+    "detail": "Run mvn test and mvn clean package, verify a clean checkout can run the app, package source/report artifacts, and complete the five-minute code walkthrough.",
+    "status": "backlog",
+    "source": "ShuttleFlow/Milestone2/CMPE172_Milestone2_Booking_and_Concurrency.pdf; ShuttleFlow/AGENTS.md",
+    "milestone": "M2"
+  }
+]

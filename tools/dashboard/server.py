@@ -1,0 +1,262 @@
+#!/usr/bin/env python3
+"""Project-local, dependency-free engineering dashboard."""
+import argparse
+import datetime as dt
+import json
+import os
+import re
+import subprocess
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import urlparse
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent.parent
+DATA = HERE / "data"
+STATIC = HERE / "static"
+LOCK = threading.RLock()
+CONTEXT_MARKER_START = "<!-- dashboard:active-tasks:start -->"
+CONTEXT_MARKER_END = "<!-- dashboard:active-tasks:end -->"
+
+
+def run(*args, cwd=ROOT, timeout=5):
+    try:
+        p = subprocess.run(args, cwd=cwd, text=True, capture_output=True, timeout=timeout)
+        return p.returncode, p.stdout.strip(), p.stderr.strip()
+    except (OSError, subprocess.SubprocessError) as exc:
+        return 1, "", str(exc)
+
+
+def git(*args):
+    return run("git", *args)
+
+
+def read_json(path, default):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return default
+
+
+def write_json(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def context_path():
+    """Return the repository context file, including this repo's nested app root."""
+    nested = ROOT / "ShuttleFlow" / "context.md"
+    return nested if nested.exists() else ROOT / "context.md"
+
+
+def sync_active_tasks(items):
+    """Keep Doing tasks visible in the project context without rewriting its snapshot."""
+    path = context_path()
+    try:
+        original = path.read_text(encoding="utf-8") if path.exists() else ""
+        section_lines = [CONTEXT_MARKER_START, "## Active dashboard tasks", ""]
+        active = [item for item in items if item.get("status") == "doing"]
+        if active:
+            for item in active:
+                section_lines.append(f"- **{item.get('title', 'Untitled task')}** — {item.get('detail', '').strip()}")
+        else:
+            section_lines.append("No tasks currently in Doing.")
+        section_lines.extend(["", CONTEXT_MARKER_END])
+        section = "\n".join(section_lines)
+        pattern = re.compile(re.escape(CONTEXT_MARKER_START) + r".*?" + re.escape(CONTEXT_MARKER_END), re.S)
+        updated = pattern.sub(section, original) if pattern.search(original) else (original.rstrip() + "\n\n" + section + "\n")
+        if updated != original:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(updated, encoding="utf-8")
+    except OSError:
+        # The board remains usable if the project context is unavailable/read-only.
+        return
+
+
+def next_task_id(items, milestone):
+    prefix = str(milestone or "M2").upper()
+    numbers = [int(match.group(1)) for item in items if (match := re.fullmatch(re.escape(prefix) + r"-(\d+)", str(item.get("id", ""))))]
+    return f"{prefix}-{max(numbers, default=0) + 1:02d}"
+
+
+def iso(timestamp=None):
+    return dt.datetime.fromtimestamp(timestamp or dt.datetime.now().timestamp()).astimezone().isoformat(timespec="seconds")
+
+
+def project_dirs():
+    dirs = [ROOT]
+    for child in ROOT.iterdir():
+        if child.is_dir() and child.name not in {".git", ".codex", ".claude", "tools", "node_modules", ".venv"}:
+            if any((child / marker).exists() for marker in ("pom.xml", "package.json", "pyproject.toml", "Cargo.toml", "go.mod", "build.gradle")):
+                dirs.append(child)
+    return dirs
+
+
+def detect_project():
+    dirs = project_dirs()
+    manifests = []
+    languages = []
+    tests = []
+    for directory in dirs:
+        for name, language in (("pom.xml", "Java"), ("package.json", "JavaScript/TypeScript"), ("pyproject.toml", "Python"), ("Cargo.toml", "Rust"), ("go.mod", "Go"), ("build.gradle", "Java")):
+            path = directory / name
+            if path.exists():
+                manifests.append(str(path.relative_to(ROOT)))
+                if language not in languages:
+                    languages.append(language)
+        if (directory / "pom.xml").exists(): tests.append({"command": "mvn test", "source": str((directory / "pom.xml").relative_to(ROOT))})
+        if (directory / "package.json").exists():
+            package = read_json(directory / "package.json", {})
+            for name, command in (package.get("scripts") or {}).items():
+                if "test" in name.lower(): tests.append({"command": f"npm run {name}", "source": str((directory / "package.json").relative_to(ROOT))})
+        if (directory / "pyproject.toml").exists(): tests.append({"command": "python -m pytest", "source": str((directory / "pyproject.toml").relative_to(ROOT))})
+    guidance = [str(p.relative_to(ROOT)) for p in ROOT.rglob("*") if p.is_file() and p.name in {"AGENTS.md", "CLAUDE.md", "README.md", "current_progress.md"} and ".git" not in p.parts][:80]
+    name = next((d.name for d in dirs[1:]), ROOT.name)
+    return {"name": name, "root": str(ROOT), "languages": languages or ["Unknown"], "manifests": manifests, "test_commands": tests, "guidance": guidance, "project_directories": [str(d.relative_to(ROOT)) for d in dirs]}
+
+
+def status():
+    code, out, err = git("status", "--short")
+    return {"clean": code == 0 and not out, "files": out.splitlines() if out else [], "error": err if code else None}
+
+
+def changes():
+    s = status()
+    rows = []
+    for line in s["files"]:
+        rows.append({"status": line[:2].strip() or "?", "path": line[3:] if len(line) > 3 else line})
+    return rows
+
+
+def history():
+    code, out, _ = git("log", "-n", "30", "--date=iso", "--pretty=format:%h%x09%an%x09%ad%x09%s")
+    if code:
+        return []
+    return [{"sha": p[0], "author": p[1], "date": p[2], "subject": p[3]} for line in out.splitlines() if len(p := line.split("\t", 3)) == 4]
+
+
+def branches():
+    code, out, _ = git("branch", "-a", "--format=%(refname:short)")
+    return [{"name": x, "current": x == current_branch()} for x in out.splitlines()] if code == 0 else []
+
+
+def current_branch():
+    return git("branch", "--show-current")[1] or "detached"
+
+
+def tests():
+    detected = detect_project()["test_commands"]
+    return [{**item, "status": "not_run", "note": "Detected from project configuration; run explicitly to update this result."} for item in detected]
+
+
+def files_matching(pattern):
+    found = []
+    for directory in project_dirs():
+        for path in directory.rglob("*"):
+            if path.is_file() and ".git" not in path.parts and path.stat().st_size < 2_000_000:
+                try:
+                    text = path.read_text(errors="ignore")
+                except OSError:
+                    continue
+                for line_no, line in enumerate(text.splitlines(), 1):
+                    if pattern.search(line): found.append({"path": str(path.relative_to(ROOT)), "line": line_no, "text": line.strip()[:240]})
+                    if len(found) >= 100: return found
+    return found
+
+
+def gate():
+    project = detect_project()
+    state = status()
+    if state["error"]: return {"state": "unknown", "text": f"Git status unavailable: {state['error']}"}
+    if not project["test_commands"]: return {"state": "unknown", "text": "No test command detected; compatibility gate is not configured."}
+    if state["clean"]: return {"state": "unknown", "text": "Tests detected, but no recorded test run is available."}
+    return {"state": "changed", "text": "Project changed since the last dashboard observation; run the detected tests before relying on the gate."}
+
+
+def read_board(name, default):
+    return read_json(DATA / name, default)
+
+
+def payload(route):
+    project = detect_project()
+    if route == "/api/meta": return {"project": project, "dashboard": "project-dashboard", "features": ["team", "needs_you", "agents", "analytics", "changes", "history", "todo", "tests"], "port": PORT}
+    if route == "/api/gate": return gate()
+    if route == "/api/team": return {"branch": current_branch(), "branches": branches()}
+    if route == "/api/changes": return {"status": status(), "files": changes()}
+    if route == "/api/history": return {"commits": history()}
+    if route == "/api/tests": return {"detected": tests()}
+    if route == "/api/todo": return {"items": read_board("todo.json", [])}
+    if route == "/api/manual": return {"items": read_board("manual.json", [])}
+    if route == "/api/suggestions": return {"items": read_board("suggestions.json", [])}
+    if route == "/api/needtoknow": return {"items": files_matching(re.compile(r"TODO|FIXME|NEEDS[- ]YOU|BLOCKED", re.I))[:50]}
+    if route == "/api/agents": return {"items": read_board("agents.json", []), "sources": [x for x in (".agents", ".claude", ".codex") if (ROOT / x).exists()]}
+    if route == "/api/analytics": return {"commits": len(history()), "changed_files": len(changes()), "detected_tests": len(tests()), "languages": project["languages"]}
+    return None
+
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *_): pass
+    def send_json(self, value, code=200):
+        body = json.dumps(value).encode()
+        self.send_response(code); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+    def do_GET(self):
+        path = urlparse(self.path).path
+        if path == "/" or path == "/index.html":
+            body = (STATIC / "index.html").read_bytes(); self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
+        if path in {"/app.js", "/static/app.js"}:
+            body = (STATIC / "app.js").read_bytes(); self.send_response(200); self.send_header("Content-Type", "text/javascript"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
+        if path == "/static/style.css":
+            body = (STATIC / "style.css").read_bytes(); self.send_response(200); self.send_header("Content-Type", "text/css"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
+        with LOCK:
+            value = payload(path)
+        self.send_json(value if value is not None else {"error": "not found"}, 200 if value is not None else 404)
+    def do_POST(self):
+        path = urlparse(self.path).path
+        try: body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+        except ValueError: self.send_json({"error": "invalid JSON"}, 400); return
+        mapping = {"/api/todo": "todo.json", "/api/manual": "manual.json", "/api/suggestions": "suggestions.json"}
+        if path not in mapping: self.send_json({"error": "not found"}, 404); return
+        with LOCK:
+            items = read_board(mapping[path], [])
+            if body.get("action") == "add":
+                item = {**body, "id": next_task_id(items, body.get("milestone", "M2")), "milestone": body.get("milestone", "M2"), "created": iso()}
+                items.append(item)
+            elif body.get("action") == "move" and path == "/api/todo":
+                if body.get("status") not in {"next", "doing"}: self.send_json({"error": "tasks can move only to next or doing"}, 400); return
+                found = False
+                for item in items:
+                    if item.get("id") == body.get("id"):
+                        item["status"] = body["status"]
+                        if body["status"] == "doing": item["started"] = iso()
+                        found = True
+                        break
+                if not found: self.send_json({"error": "todo item not found"}, 404); return
+                sync_active_tasks(items)
+            elif body.get("action") == "delete": items = [x for x in items if x.get("id") != body.get("id")]
+            else: self.send_json({"error": "supported actions: add, move, delete"}, 400); return
+            write_json(DATA / mapping[path], items)
+        self.send_json({"ok": True, "items": items})
+
+
+PORT = 8765
+
+
+def main():
+    global ROOT, DATA, STATIC, PORT
+    parser = argparse.ArgumentParser(description="Project-local adaptive dashboard")
+    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--root", type=Path, default=None)
+    parser.add_argument("--lan", action="store_true", help="bind to the network; read-only unless separately extended")
+    args = parser.parse_args()
+    if args.root:
+        ROOT = args.root.resolve(); DATA = HERE / "data"; STATIC = HERE / "static"
+    PORT = args.port
+    host = "0.0.0.0" if args.lan else "127.0.0.1"
+    print(f"Project dashboard: http://127.0.0.1:{PORT}", flush=True)
+    ThreadingHTTPServer((host, PORT), Handler).serve_forever()
+
+
+if __name__ == "__main__": main()

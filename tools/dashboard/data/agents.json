@@ -1,0 +1,7 @@
+[
+  {"id":"claude-reviewer-feature-02","name":"Claude · reviewer","category":"Claude subagent","role":"reviewer","model":"unknown","status":"done","description":"Reviewed the feature 02 changes against the project rules.","runs":1,"source":"Claude session subagent records"},
+  {"id":"claude-reviewer-feature-02-rereview","name":"Claude · reviewer","category":"Claude subagent","role":"reviewer","model":"unknown","status":"done","description":"Re-reviewed the feature 02 fix.","runs":1,"source":"Claude session subagent records"},
+  {"id":"claude-test-writer-feature-02","name":"Claude · test-writer","category":"Claude subagent","role":"test-writer","model":"unknown","status":"done","description":"Wrote failing tests for feature 02 from its acceptance criteria.","runs":1,"source":"Claude session subagent records"},
+  {"id":"claude-general-purpose-add-endpoint","name":"Claude · general-purpose","category":"Claude subagent","role":"general-purpose","model":"opus","status":"done","description":"Drafted the add-endpoint project skill.","runs":1,"source":"Claude session subagent records"},
+  {"id":"codex-main","name":"Codex · main","category":"Codex agent","role":"main","model":"current session","status":"running","description":"Maintains the project dashboard and repository work for this session.","runs":1,"source":"Codex session"}
+]

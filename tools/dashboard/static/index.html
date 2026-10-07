@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Dashboard</title><link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><strong id="title">Project Dashboard</strong><span class="muted" id="who">Discovering project context…</span></div>
+  <div class="gate" id="gate"><span class="light"></span><div><div class="gate-text" id="gate-text">Checking the project gate…</div><div class="suites" id="suites"></div></div></div>
+  <div class="theme"><button data-theme="light">Light</button><button data-theme="dark">Dark</button></div>
+</header>
+<nav class="tabs" id="tabs">
+  <button data-tab="manual">Needs you <span class="count" id="manual-count" hidden></span></button>
+  <button data-tab="team">Team &amp; branches</button><button data-tab="agents" class="on">Agents</button>
+  <button data-tab="analytics">Analytics</button><button data-tab="changes">Changes &amp; history</button>
+  <button data-tab="todo">TODO &amp; ideas</button><button data-tab="tests">Tests</button>
+</nav>
+<main>
+  <section id="tab-manual" class="tab"><div class="panel"><h2>Needs you <span class="muted small">manual actions and blockers detected in this project</span></h2><div id="manual"></div><div id="needs"></div></div></section>
+  <section id="tab-team" class="tab"><div class="panel"><h2>Team &amp; branches <span class="muted small" id="team-note"></span></h2><div id="people"></div><div id="branches"></div></div></section>
+  <section id="tab-agents" class="tab on"><div class="panel"><div class="panel-head"><h2>Agents <span class="muted small">local agent and workspace activity</span></h2><span class="muted small" id="agent-sources"></span></div><div id="agents" class="list"></div></div><div class="panel"><h2>Need to know</h2><div id="ntk"></div></div></section>
+  <section id="tab-analytics" class="tab"><div class="panel"><div class="panel-head"><h2>Project analytics <span class="muted small">derived from local Git and project files</span></h2><span class="muted small" id="analytics-updated"></span></div><div id="analytics-summary" class="analytics-summary"></div></div><div class="cols"><div class="panel"><h2>Project profile</h2><div id="profile"></div></div><div class="panel wide"><h2>Detected test commands</h2><div id="analytics-tests"></div></div></div></section>
+  <section id="tab-changes" class="tab"><div class="cols"><div class="panel"><h2>Uncommitted changes <span class="muted" id="change-count"></span></h2><div id="changes" class="list"></div></div><div class="panel wide"><h2>Recent history</h2><div id="history" class="history"></div></div></div></section>
+  <section id="tab-todo" class="tab"><div class="panel"><div class="panel-head"><h2>TODO</h2><form id="todo-form" class="inline"><input id="todo-title" placeholder="Add a task…" maxlength="200" required><button class="primary">Add</button></form></div><div class="board" id="board"></div></div><div class="panel"><h2>Suggested features</h2><div id="suggestions"></div></div></section>
+  <section id="tab-tests" class="tab"><div class="panel"><h2>How testing works here</h2><p class="muted">Commands are detected from project manifests and are shown as not run until you execute them.</p><div id="tests"></div></div></section>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>
