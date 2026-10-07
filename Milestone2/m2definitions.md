@@ -103,7 +103,7 @@ Every M2 request follows the M1 layering rule:
 ```text
 Browser/UI
    ↓ HTTP request
-Controller → Service → Repository → H2/PostgreSQL
+Controller → Service → Repository → PostgreSQL (H2 only during transition/tests)
    ↑ DTO response      ← SQL result
 Browser/UI
 ```
@@ -127,7 +127,7 @@ Browser/UI
 |---|---|---|
 | `Milestone2/milestone2.md` | Existing M2 | Detailed assignment scope, endpoint rules, ACID requirements, concurrency strategy, tests, and definition of done. It is the source checklist for the implementation. |
 | `Milestone2/m2definitions.md` | Existing M2 | This implementation glossary and file map. It explains the intended code ownership so new features do not bypass the M1 architecture. |
-| `pom.xml` | M1 → M2 | Keeps Java 17, Spring Boot, Web, JDBC, H2, and tests. M2 may add BCrypt/session support and a frontend build only when chosen; it must not add JPA/Hibernate or Spring Data. |
+| `pom.xml` | M1 → M2 | Keeps Java 17, Spring Boot, Web, JDBC, and tests. M2 adds the PostgreSQL driver plus BCrypt/session support as needed; H2 may remain in a test profile during transition. It must not add JPA/Hibernate or Spring Data. |
 | `README.md` | M1 → M2 | Documents how to run the app and the public API. M2 should add login, booking, cancellation, provider routes, session behavior, and test commands. |
 | `docs/features/*.md` | Existing supporting | Each file is an endpoint contract and acceptance criteria. M2 code and tests should implement these contracts, with any PDF conflict recorded in `docs/decisions.md`. |
 | `docs/decisions.md` | Existing supporting | Records architectural choices such as H2 vs PostgreSQL, `BOOKED` vs `CONFIRMED`, derived completion, isolation level, and concurrency control. |
@@ -138,7 +138,7 @@ Browser/UI
 | File/component | Status | Role and interaction with M1 |
 |---|---|---|
 | `ShuttleflowApplication.java` | Existing/M1 | Spring Boot entry point. Component scanning discovers controllers, services, repositories, and the M2 authentication components below the package root. No booking logic belongs here. |
-| `application.properties` | M1 → M2 | Configures the datasource and SQL initialization. M2 may configure session behavior and a BCrypt-related setting, while preserving the selected H2/PostgreSQL decision. |
+| `application.properties` | M1 → M2 | Configures the PostgreSQL datasource and SQL initialization. A separate test profile may retain H2 while migration work is completed; session behavior and BCrypt-related settings belong here only when needed. |
 | `schema.sql` | M1 → M2 | Creates `users`, `providers`, `services`, `availability_slots`, and `appointments`. M2 must preserve foreign keys, valid status checks, provider/start uniqueness, and `UNIQUE (slot_id)` as the database backstop. An optimistic strategy may add a slot version column. |
 | `seed.sql` | M1 → M2 | Supplies repeatable local/test data. M2 must replace placeholder passwords with BCrypt hashes and include usable customer/provider accounts without exposing plaintext passwords in code or logs. |
 
@@ -234,12 +234,12 @@ database ends with exactly one active appointment
 The implementation must select one strategy and record it in
 `docs/decisions.md`:
 
-1. **Optimistic version check (the portable/H2 default):** update an open slot
+1. **Optimistic version check:** update an open slot
    with `WHERE slot_id = ? AND status = 'OPEN' AND version = ?`. A zero-row
    update is a conflict, followed by the appointment insert only for the
    winner.
-2. **Pessimistic row lock:** use `SELECT ... FOR UPDATE` inside the booking
-   transaction if the selected database supports it consistently.
+2. **Pessimistic row lock:** use PostgreSQL's `SELECT ... FOR UPDATE` inside
+   the booking transaction when the project chooses the lock-based strategy.
 
 In either case, `UNIQUE (slot_id)` remains the final database backstop. The
 service catches a uniqueness/concurrency failure and returns a safe `409`.

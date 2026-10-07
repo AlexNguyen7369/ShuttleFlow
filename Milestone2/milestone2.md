@@ -58,8 +58,8 @@ Web UI → Controller → Service → Repository → Database
 - Maven.
 - Spring JDBC with `JdbcTemplate`.
 - No JPA, Hibernate, Spring Data repositories, or other ORM.
-- Current local database: file-based H2.
-- The course design names PostgreSQL. Any migration from H2 to PostgreSQL must be an explicit documented decision, with SQL and test behavior updated consistently.
+- Project target database: PostgreSQL, as selected in `docs/decisions.md`.
+- The current read-only skeleton still uses file-based H2 during the transition. The M2 implementation must migrate runtime configuration and update SQL/test behavior consistently; H2 may remain only in an explicit test profile if needed.
 - SQL must remain portable unless the selected concurrency strategy intentionally requires a database-specific feature.
 
 ## Web interface requirements
@@ -117,7 +117,7 @@ The following contracts are the required feature surface. Existing detailed spec
 
 #### `POST /auth/login`
 
-Request:
+Request (the project uses email as the username identifier):
 
 ```json
 {
@@ -335,14 +335,13 @@ The existing schema uses these core tables:
 
 ## Status model and required reconciliation
 
-The Milestone 2 PDF says appointment statuses are `BOOKED` and `CANCELLED`, with `COMPLETED` for past appointments. Existing Milestone 1 code and feature documents use `CONFIRMED` and `CANCELLED`. Before implementing the full workflow, make one explicit project decision:
+The Milestone 2 PDF says appointment statuses are `BOOKED` and `CANCELLED`,
+with `COMPLETED` for past appointments. The project has selected that
+terminology: migrate the schema, seed data, feature documents, queries, DTOs,
+and tests to `BOOKED` and `CANCELLED`; `CONFIRMED` is not an M2 status.
 
-1. Migrate the schema, seed data, feature documents, queries, DTOs, and tests to the PDF terminology (`BOOKED`, `CANCELLED`, optionally derived/recorded `COMPLETED`); or
-2. Retain `CONFIRMED` as an internal/API synonym and document why it satisfies the assignment's booked state.
-
-Do not mix `BOOKED` and `CONFIRMED` inconsistently across the schema, SQL, API, and tests.
-
-Past appointment behavior must be deterministic. Decide whether `COMPLETED` is persisted or derived from a booked appointment whose start time has passed, and document the choice in `docs/decisions.md`.
+`COMPLETED` is derived for a booked appointment whose start time has passed;
+the decision is recorded in `docs/decisions.md`.
 
 ## Transaction and ACID requirements
 
@@ -391,7 +390,7 @@ Choose one strategy and justify it:
 - Optimistic version check: add/use a version value, condition the update on the expected version and open state, and treat an update count of zero as a conflict; or
 - Pessimistic row lock: use a database-supported `SELECT ... FOR UPDATE` within the transaction. The assignment specifically notes this for MySQL/PostgreSQL and recommends an optimistic version check for SQLite; verify compatibility if retaining H2.
 
-The current project default should be the optimistic approach unless the database is deliberately migrated to PostgreSQL and the locking approach is documented.
+This project has selected PostgreSQL pessimistic row locking. Use `SELECT ... FOR UPDATE` inside the booking transaction after migrating the runtime database, and document the chosen isolation level and bounded retry behavior.
 
 ### Mandatory database backstop
 
@@ -532,9 +531,9 @@ The final submission also requires the GitHub repository link and video link.
 
 ### Foundation
 
-- [ ] Confirm the final database choice: H2 for local development or PostgreSQL.
-- [ ] Resolve `BOOKED` versus `CONFIRMED` terminology and update all affected artifacts.
-- [ ] Decide whether `COMPLETED` is persisted or derived.
+- [x] Confirm the final database choice: PostgreSQL is the project target; H2 is transitional only.
+- [x] Resolve `BOOKED` versus `CONFIRMED` terminology: use `BOOKED`.
+- [x] Confirm that `COMPLETED` is derived from past `BOOKED` appointments.
 - [ ] Decide how cancelled appointments release a slot while preserving uniqueness safety.
 - [ ] Choose isolation level and concurrency strategy.
 - [ ] Record decisions in `docs/decisions.md`.
@@ -584,4 +583,3 @@ The final submission also requires the GitHub repository link and video link.
 ## Definition of done
 
 Milestone 2 is complete only when a clean checkout can build and run the application; a customer can log in, browse, book, view, and cancel appointments; a provider can log in, manage availability, and inspect their bookings; all protected actions enforce session/RBAC rules; booking is transactional; two simultaneous attempts cannot both succeed; the automated concurrency test proves that behavior; and the report, source package, and walkthrough cover the required design decisions.
-

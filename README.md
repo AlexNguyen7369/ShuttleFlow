@@ -26,7 +26,7 @@ This repo currently implements stage 1, built as the required project for CMPE 1
 ## Tech stack
 
 - **Backend:** Java 17, Spring Boot 3.3 (`spring-boot-starter-web` + `spring-boot-starter-jdbc`) — no ORM, raw SQL via `JdbcTemplate`
-- **Database:** H2 (file-based) for local dev; schema targets standard SQL so Postgres is a drop-in swap later
+- **Database:** PostgreSQL is the project target; the current read-only skeleton uses file-based H2 locally until the PostgreSQL configuration is implemented
 - **Frontend:** React (planned — this repo is backend-only so far)
 - **Architecture:** Front Controller (Spring's `DispatcherServlet`) routing to `@RestController` → `@Service` → `@Repository` → DTO layers
 

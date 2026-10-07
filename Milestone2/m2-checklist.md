@@ -1,5 +1,9 @@
 # Milestone 2 Scaffold Checklist
 
+The assignment PDF was reviewed against this checklist on 2026-10-07. The
+PDF is the grading authority; this file adds implementation sequencing and
+records project-specific clarifications.
+
 This checklist records what the scaffold prepares for. A checked item means
 the folder/file responsibility is documented and reserved; it does not mean
 the feature is implemented.
@@ -9,11 +13,12 @@ the feature is implemented.
 Complete these steps in order so each feature has the database, identity, and
 service-layer dependencies it needs before the next feature is added.
 
-1. [ ] **Freeze the design decisions.** Choose H2 or PostgreSQL, settle
-   `BOOKED` versus `CONFIRMED`, decide whether `COMPLETED` is derived or
-   stored, choose the isolation level, and select optimistic version checking
-   or pessimistic row locking. Record every choice in `docs/decisions.md`.
-2. [ ] **Update the database foundation.** Align `schema.sql` with those
+1. [x] **Freeze the remaining design decisions.** PostgreSQL is the selected
+   project target; `BOOKED` and PostgreSQL row locking are selected. Confirm
+   `READ COMMITTED`, derived `COMPLETED`, and cancellation/rebooking semantics
+   are recorded in `docs/decisions.md` before schema migration.
+2. [ ] **Update the database foundation.** Migrate the runtime configuration
+   to PostgreSQL, align `schema.sql` with the remaining decisions, add any
    decisions, add any booking version/state columns, preserve foreign keys and
    `UNIQUE (appointments.slot_id)`, and update `seed.sql` with valid BCrypt
    hashes and future test data.
@@ -43,8 +48,8 @@ service-layer dependencies it needs before the next feature is added.
 9. [ ] **Implement provider availability.** Add provider ownership queries,
    create/remove endpoints, future/time-range validation, duplicate handling,
    and rejection of removal when an active appointment exists.
-10. [ ] **Implement provider appointment viewing.** Return only confirmed/
-    booked appointments on the authenticated provider's slots, including the
+10. [ ] **Implement provider appointment viewing.** Return only booked
+    appointments on the authenticated provider's slots, including the
     required customer fields and excluding cancelled records.
 11. [ ] **Build the UI against stable endpoints.** Add login, browse/filter,
     booking confirmation, customer appointments/cancellation, provider
@@ -64,10 +69,10 @@ service-layer dependencies it needs before the next feature is added.
 - [x] Reserve DTOs for immutable request/response boundaries.
 - [x] Reserve repositories as the only SQL/`JdbcTemplate` layer.
 - [x] Reserve global handling for safe `400`, `401`, `403`, `404`, and `409` errors.
-- [ ] Resolve and record H2 vs PostgreSQL in `docs/decisions.md`.
-- [ ] Resolve and record `BOOKED` vs `CONFIRMED` terminology.
-- [ ] Resolve and record derived vs persisted `COMPLETED` status.
-- [ ] Resolve and record isolation level and optimistic/pessimistic concurrency strategy.
+- [x] Resolve and record PostgreSQL as the project target; H2 is transitional local/test infrastructure.
+- [x] Resolve and record `BOOKED` vs `CONFIRMED` terminology: use `BOOKED`.
+- [x] Confirm derived `COMPLETED` status and cancellation/rebooking semantics.
+- [x] Resolve and record PostgreSQL pessimistic row locking; confirm `READ COMMITTED` as the isolation level.
 
 ## Authentication and RBAC
 
