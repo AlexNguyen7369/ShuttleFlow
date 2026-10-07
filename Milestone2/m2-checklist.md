@@ -4,6 +4,60 @@ This checklist records what the scaffold prepares for. A checked item means
 the folder/file responsibility is documented and reserved; it does not mean
 the feature is implemented.
 
+## Sequential implementation plan
+
+Complete these steps in order so each feature has the database, identity, and
+service-layer dependencies it needs before the next feature is added.
+
+1. [ ] **Freeze the design decisions.** Choose H2 or PostgreSQL, settle
+   `BOOKED` versus `CONFIRMED`, decide whether `COMPLETED` is derived or
+   stored, choose the isolation level, and select optimistic version checking
+   or pessimistic row locking. Record every choice in `docs/decisions.md`.
+2. [ ] **Update the database foundation.** Align `schema.sql` with those
+   decisions, add any booking version/state columns, preserve foreign keys and
+   `UNIQUE (appointments.slot_id)`, and update `seed.sql` with valid BCrypt
+   hashes and future test data.
+3. [ ] **Harden shared errors and validation.** Expand
+   `ApiExceptionHandler`, define safe not-found/authorization/conflict
+   exceptions, and establish consistent validation for IDs, dates, enums, and
+   required fields before adding endpoint-specific behavior.
+4. [ ] **Implement authentication first.** Add the BCrypt dependency, build
+   `UserRepository`, `AuthService`, `AuthController`, `UserSession`, and
+   `SessionAuth`, then verify login, logout/session persistence, generic
+   invalid-credential responses, and provider linkage.
+5. [ ] **Apply RBAC to the existing M1 browse path.** Keep public browsing
+   behavior working, add any required service/date filters, and regression-test
+   the existing SQL `LIMIT 10 OFFSET ...` pagination before protected features
+   depend on it.
+6. [ ] **Implement the booking write path.** Build the slot read/reservation
+   repository methods, `BookingRequest`, and customer booking service/controller
+   flow. Validate open/future slots and return `201`, `400`, `401`, `403`,
+   `404`, or `409` according to the contract.
+7. [ ] **Make booking transactional and race-safe.** Add the selected version
+   check or row lock, create the appointment and update slot state in one
+   transaction, catch database conflicts, and map them to a safe `409`.
+8. [ ] **Add customer appointment views.** Implement upcoming/history queries
+   scoped to the authenticated customer, then add owner-only cancellation and
+   atomic slot reavailability. Verify another customer cannot view or cancel
+   those records.
+9. [ ] **Implement provider availability.** Add provider ownership queries,
+   create/remove endpoints, future/time-range validation, duplicate handling,
+   and rejection of removal when an active appointment exists.
+10. [ ] **Implement provider appointment viewing.** Return only confirmed/
+    booked appointments on the authenticated provider's slots, including the
+    required customer fields and excluding cancelled records.
+11. [ ] **Build the UI against stable endpoints.** Add login, browse/filter,
+    booking confirmation, customer appointments/cancellation, provider
+    availability, and provider appointment screens after the API contracts are
+    passing.
+12. [ ] **Verify each layer and the race condition.** Add service unit tests,
+    endpoint/integration tests, then run the real two-customer same-slot test.
+    Confirm exactly one success, one conflict, one active appointment, and
+    consistent slot state.
+13. [ ] **Finish the submission artifacts.** Run `mvn test` and
+    `mvn clean package`, update README/feature docs, complete the M2 report and
+    code walkthrough, and confirm the clean-checkout definition of done.
+
 ## Foundation and architecture
 
 - [x] Preserve the M1 flow: controller → service → repository → database.
