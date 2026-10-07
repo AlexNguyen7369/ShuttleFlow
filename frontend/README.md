@@ -1,8 +1,12 @@
 # Frontend scaffold — Milestone 2
 
-No frontend implementation exists yet. This directory is reserved for the
-Milestone 2 web interface: home, login, slot browsing/filtering, booking,
-confirmation, customer appointments/cancellation, and provider workflows.
+The initial frontend entry point is `index.html`. It provides a deliberately
+small, static landing page while the Milestone 2 web interface is being
+implemented.
+
+The directory is reserved for the future home, login, slot
+browsing/filtering, booking, confirmation, customer appointments/cancellation,
+and provider workflows.
 
 The UI must call the existing/new REST controllers and preserve the flow:
 

@@ -18,7 +18,7 @@ Source: `docs/CMPE 172 Milestone 1.pdf`, plus what is currently implemented in `
 ## Stack
 
 - Java, Spring Boot, SQL via **JDBC — no ORM**.
-- PostgreSQL is the database named in the spec (see Open items: the skeleton runs on H2).
+- PostgreSQL is the target database named in the spec. The current read-only skeleton still runs on H2 until the PostgreSQL configuration/migration is implemented.
 - Framing from the spec: Spring Boot in place of J2EE, REST in place of CORBA/distributed objects.
 
 ## Core features (full project scope)
@@ -50,9 +50,36 @@ Milestone 1 itself is only the design + a read-only skeleton (`GET /`, `GET /slo
 
 ## Open items / discrepancies to resolve
 
-1. **PostgreSQL vs H2.** Spec says PostgreSQL; `pom.xml` and `application.properties` use file-based H2. `README.md` calls H2 local-dev with Postgres as a later drop-in. Decide whether Milestone 1 is graded on Postgres.
+1. **PostgreSQL vs H2.** **Resolved 2026-10-07:** PostgreSQL is the M2/project target; H2 is transitional local/test infrastructure until runtime migration is implemented.
 2. **Spec typo in constraints.** The PDF's Justification says `CHECK start_time > end_time`; the relational schema table and `schema.sql` correctly use `end_time > start_time`. Treat the latter as correct.
 3. **Spec typo in the double-booking paragraph.** "enforced now through java, but through the database" almost certainly means *not* through Java, but through the database. The implementation follows that reading.
 4. **Role naming.** The roles table says "Admin" for coach/court manager, but the schema stores `PROVIDER`. Keep `PROVIDER` in the DB.
 5. **Diagrams not captured.** The block diagram (page 2) and ER diagram (page 3) are images in the PDF; their content was not extracted here. Check them against `schema-notes.md`.
 6. **Session type filter.** The spec filters by "open play / coaching" but the schema has no explicit session-type column; it is implied by `providers.type` (`COURT`/`COACH`) and `services.name`. **Resolved 2026-09-29:** filter on `providers.type` — `OPEN_PLAY` = `COURT`, `COACHING` = `COACH`; no schema change.
+
+## Resolved decisions — 2026-10-07
+
+1. **Milestone 1 relational schema contract:** Treat the relational-schema table and the implemented `schema.sql` as authoritative. The PDF's `CHECK start_time > end_time` is a typo; the valid rule is `end_time > start_time`. The PDF's double-booking wording is also interpreted as requiring the database-level `UNIQUE (slot_id)` constraint, with the service translating conflicts into a safe response. Keep `PROVIDER` as the stored role name even though the narrative calls providers "Admin".
+2. **Database target:** Use PostgreSQL for the project target and eventual deployment. H2 remains the current local skeleton database only until the PostgreSQL driver, configuration, and test profile are added.
+3. **Appointment terminology:** Use `BOOKED` for an active appointment and `CANCELLED` for a cancelled appointment. Do not use `CONFIRMED` in the M2 schema or API.
+4. **Concurrency mechanism:** Use PostgreSQL pessimistic row locking with `SELECT ... FOR UPDATE` inside the booking transaction. Keep the database uniqueness backstop as an additional safety net.
+
+## Resolved M2 decisions — 2026-10-07
+
+1. **Isolation level: `READ COMMITTED`.** This is PostgreSQL's default and is
+   sufficient when booking first locks the slot row, then validates its open
+   state, inserts the appointment, and updates the slot before committing. A
+   competing booking waits for the row lock, then observes the winner's
+   committed state and returns `409`. `SERIALIZABLE` would add unnecessary
+   serialization failures and retry complexity for this single-row reservation
+   flow.
+2. **Cancellation and rebooking: preserve history and allow rebooking.** Mark
+   the appointment `CANCELLED`, return the slot to `OPEN`, and enforce one
+   active booking with a PostgreSQL partial unique index on `slot_id` where
+   `status = 'BOOKED'`. This preserves customer history while preventing two
+   active bookings. The M2 schema notes must explicitly document this as the
+   PostgreSQL evolution of the M1 `UNIQUE (slot_id)` backstop.
+3. **Completed appointments: derive `COMPLETED`.** Keep the stored status as
+   `BOOKED` or `CANCELLED`; present a booked appointment whose start time is in
+   the past as `COMPLETED` in history queries. This avoids a scheduler and
+   prevents status drift.

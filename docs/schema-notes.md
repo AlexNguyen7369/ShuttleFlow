@@ -2,6 +2,19 @@
 
 Source: relational schema and justification pages of `docs/CMPE 172 Milestone 1.pdf`, compared with `src/main/resources/schema.sql`.
 
+## Contract decision — 2026-10-07
+
+The relational-schema table and `schema.sql` are the authoritative Milestone 1
+contract. The PDF's reversed time check is treated as a typo: a slot must have
+`end_time > start_time`. Double-booking protection is a database concern,
+implemented by `UNIQUE (slot_id)` on `appointments`; application code should
+translate the resulting conflict rather than replace the constraint with a
+check-then-insert race.
+
+For Milestone 2, PostgreSQL will evolve this guard to a partial unique index on
+`appointments(slot_id)` for `status = 'BOOKED'`. This preserves cancelled
+appointment history while allowing the released slot to be booked again.
+
 ## Tables
 
 | Table | Columns | Keys & constraints |
