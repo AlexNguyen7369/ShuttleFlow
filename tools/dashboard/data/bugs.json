@@ -7,7 +7,38 @@
     "solution": "prepareStatement(sql, new String[]{\"slot_id\"}); the same for appointment_id. Verified live on PostgreSQL.",
     "status": "fixed",
     "subagent": "Claude · main (audit)",
-    "discovered_at": "2026-10-08"
+    "discovered_at": "2026-10-08",
+    "snippet": {
+      "file": "src/main/java/com/shuttleflow/repository/ProviderRepository.java",
+      "ref": "2c3a234",
+      "from": 37,
+      "lines": [
+        "            PreparedStatement statement = connection.prepareStatement(\"\"\"",
+        "                    INSERT INTO availability_slots (provider_id, service_id, start_time, end_time, status)",
+        "                    VALUES (?, ?, ?, ?, 'OPEN')",
+        "                    \"\"\", Statement.RETURN_GENERATED_KEYS);",
+        "            statement.setLong(1, providerId);",
+        "            statement.setLong(2, serviceId);",
+        "            statement.setObject(3, startTime);",
+        "            statement.setObject(4, endTime);",
+        "            return statement;",
+        "        }, keyHolder);",
+        "        Number key = keyHolder.getKey();",
+        "        if (key == null) {",
+        "            throw new IllegalStateException(\"Slot ID was not generated.\");",
+        "        }"
+      ],
+      "highlight": [
+        [
+          40,
+          40
+        ],
+        [
+          47,
+          47
+        ]
+      ]
+    }
   },
   {
     "id": "BUG-02",
@@ -17,7 +48,28 @@
     "solution": "Seed relative to CURRENT_DATE with portable interval arithmetic.",
     "status": "fixed",
     "subagent": "Claude · main (audit)",
-    "discovered_at": "2026-10-08"
+    "discovered_at": "2026-10-08",
+    "snippet": {
+      "file": "src/main/resources/seed.sql",
+      "ref": "2c3a234",
+      "from": 15,
+      "lines": [
+        "(2, 'Private Coaching Session',  60, 1, 40.00);",
+        "",
+        "INSERT INTO availability_slots (provider_id, service_id, start_time, end_time, status) VALUES",
+        "(1, 1, '2026-09-27 09:00:00', '2026-09-27 10:00:00', 'OPEN'),",
+        "(1, 2, '2026-09-27 18:00:00', '2026-09-27 19:00:00', 'OPEN'),",
+        "(1, 2, '2026-09-28 10:00:00', '2026-09-28 11:00:00', 'OPEN'),",
+        "(2, 3, '2026-09-27 16:00:00', '2026-09-27 17:00:00', 'OPEN'),",
+        "(2, 3, '2026-09-29 15:00:00', '2026-09-29 16:00:00', 'OPEN');"
+      ],
+      "highlight": [
+        [
+          18,
+          22
+        ]
+      ]
+    }
   },
   {
     "id": "BUG-03",
@@ -27,7 +79,47 @@
     "solution": "Filter start_time > CURRENT_TIMESTAMP; tested in SlotControllerBrowseTest.",
     "status": "fixed",
     "subagent": "Claude · main (audit)",
-    "discovered_at": "2026-10-08"
+    "discovered_at": "2026-10-08",
+    "snippet": {
+      "file": "src/main/java/com/shuttleflow/repository/SlotRepository.java",
+      "ref": "2c3a234",
+      "from": 20,
+      "lines": [
+        "            FROM availability_slots s",
+        "            JOIN providers p ON p.provider_id = s.provider_id",
+        "            JOIN services sv ON sv.service_id = s.service_id",
+        "            WHERE s.status = 'OPEN'",
+        "            \"\"\";",
+        "",
+        "    private static final String PROVIDER_ID_FILTER_SQL = \" AND s.provider_id = ?\";",
+        "",
+        "    private static final String PROVIDER_TYPE_FILTER_SQL = \" AND p.type = ?\";",
+        "",
+        "    private static final String SERVICE_ID_FILTER_SQL = \" AND s.service_id = ?\";",
+        "",
+        "    private static final String START_AT_OR_AFTER_SQL = \" AND s.start_time >= ?\";",
+        "",
+        "    private static final String START_BEFORE_SQL = \" AND s.start_time < ?\";",
+        "",
+        "    private static final String PAGE_SQL = \" ORDER BY s.start_time, s.slot_id LIMIT ? OFFSET ?\";",
+        "",
+        "    private static final String COUNT_OPEN_SQL =",
+        "            \"SELECT COUNT(*) FROM availability_slots WHERE status = 'OPEN'\";",
+        "",
+        "    private final JdbcTemplate jdbcTemplate;",
+        ""
+      ],
+      "highlight": [
+        [
+          23,
+          23
+        ],
+        [
+          38,
+          39
+        ]
+      ]
+    }
   },
   {
     "id": "BUG-04",
@@ -37,7 +129,27 @@
     "solution": "Soft-cancel (status CANCELLED) when any appointment references the slot.",
     "status": "fixed",
     "subagent": "Claude · main (audit)",
-    "discovered_at": "2026-10-08"
+    "discovered_at": "2026-10-08",
+    "snippet": {
+      "file": "src/main/java/com/shuttleflow/service/ProviderService.java",
+      "ref": "2c3a234",
+      "from": 68,
+      "lines": [
+        "        if (appointmentRepository.hasActiveAppointment(slotId)) {",
+        "            throw new ConflictException(\"Booked slots cannot be removed.\");",
+        "        }",
+        "        slotRepository.deleteSlot(slotId);",
+        "    }",
+        "",
+        "    public List<ProviderAppointmentDto> appointments(HttpSession session) {"
+      ],
+      "highlight": [
+        [
+          71,
+          71
+        ]
+      ]
+    }
   },
   {
     "id": "BUG-05",
@@ -47,7 +159,34 @@
     "solution": "CorsConfig with an explicit origin list and allowCredentials; verified in headless Chrome.",
     "status": "fixed",
     "subagent": "Claude · main (audit)",
-    "discovered_at": "2026-10-08"
+    "discovered_at": "2026-10-08",
+    "snippet": {
+      "file": "frontend/src/app.js",
+      "ref": "2c3a234",
+      "from": 1,
+      "lines": [
+        "const apiBase = window.SHUTTLEFLOW_API || \"http://localhost:8080\";",
+        "const state = { page: 1, session: null };",
+        "const $ = (id) => document.getElementById(id);",
+        "const esc = (value) => String(value ?? \"\").replace(/[&<>\"']/g, (c) => ({\"&\":\"&amp;\",\"<\":\"&lt;\",\">\":\"&gt;\",\"\\\"\":\"&quot;\",\"'\":\"&#39;\"}[c]));",
+        "const request = async (path, options = {}) => {",
+        "  const response = await fetch(`${apiBase}${path}`, { credentials: \"include\", headers: { \"Content-Type\": \"application/json\", ...(options.headers || {}) }, ...options });",
+        "  const text = await response.text();",
+        "  const body = text ? JSON.parse(text) : null;",
+        "  if (!response.ok) throw new Error(body?.error || `Request failed (${response.status})`);"
+      ],
+      "highlight": [
+        [
+          1,
+          1
+        ],
+        [
+          6,
+          6
+        ]
+      ],
+      "note": "The page on :5173 calls :8080 with credentials, but the backend had no CORS configuration at this commit, so the browser blocked every call."
+    }
   },
   {
     "id": "BUG-06",
@@ -57,7 +196,29 @@
     "solution": "Keep the ErrorResponse status for framework exceptions.",
     "status": "fixed",
     "subagent": "Claude · main (audit)",
-    "discovered_at": "2026-10-08"
+    "discovered_at": "2026-10-08",
+    "snippet": {
+      "file": "src/main/java/com/shuttleflow/controller/ApiExceptionHandler.java",
+      "ref": "2c3a234",
+      "from": 55,
+      "lines": [
+        "        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(\"error\", \"Malformed request.\"));",
+        "    }",
+        "",
+        "    @ExceptionHandler(Exception.class)",
+        "    public ResponseEntity<Map<String, String>> handleUnexpected(Exception e) {",
+        "        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)",
+        "                .body(Map.of(\"error\", \"Request could not be completed.\"));",
+        "    }",
+        "}"
+      ],
+      "highlight": [
+        [
+          58,
+          61
+        ]
+      ]
+    }
   },
   {
     "id": "BUG-07",
@@ -67,7 +228,48 @@
     "solution": "Invalidate the old session and create a new one; tested.",
     "status": "fixed",
     "subagent": "Claude · main (audit)",
-    "discovered_at": "2026-10-08"
+    "discovered_at": "2026-10-08",
+    "snippet": {
+      "file": "src/main/java/com/shuttleflow/service/AuthService.java",
+      "ref": "2c3a234",
+      "from": 22,
+      "lines": [
+        "        this.passwordEncoder = passwordEncoder;",
+        "    }",
+        "",
+        "    public LoginResponse login(LoginRequest request, HttpSession session, boolean providerLogin) {",
+        "        validateRequest(request);",
+        "        UserRepository.UserAccount account = userRepository.findByEmail(request.getEmail().trim());",
+        "",
+        "        // Keep lookup and password failures indistinguishable to callers.",
+        "        if (account == null || !passwordEncoder.matches(request.getPassword(), account.passwordHash())) {",
+        "            throw new UnauthorizedException(INVALID_CREDENTIALS);",
+        "        }",
+        "        if (providerLogin && !\"PROVIDER\".equals(account.role())) {",
+        "            throw new ForbiddenException();",
+        "        }",
+        "        if (providerLogin && account.providerId() == null) {",
+        "            throw new ForbiddenException();",
+        "        }",
+        "",
+        "        UserSession userSession = new UserSession(account.userId(), account.email(), account.fullName(),",
+        "                account.role(), account.providerId());",
+        "        session.setAttribute(UserSession.ATTRIBUTE, userSession);",
+        "        return new LoginResponse(account.userId(), account.email(), account.fullName(), account.role(),",
+        "                account.providerId());",
+        "    }"
+      ],
+      "highlight": [
+        [
+          25,
+          25
+        ],
+        [
+          42,
+          42
+        ]
+      ]
+    }
   },
   {
     "id": "BUG-08",
@@ -77,6 +279,28 @@
     "solution": "Page through results until a short page; verified with 15 slots.",
     "status": "fixed",
     "subagent": "Claude · reviewer",
-    "discovered_at": "2026-10-08"
+    "discovered_at": "2026-10-08",
+    "snippet": {
+      "file": "frontend/src/app.js",
+      "ref": null,
+      "from": 205,
+      "lines": [
+        "  }",
+        "  try {",
+        "    const [services, slots, bookings] = await Promise.all([",
+        "      request(\"/provider/services\"),",
+        "      request(`/slots?providerId=${state.session.providerId}`),",
+        "      request(\"/provider/appointments\"),",
+        "    ]);",
+        "    $(\"availability-service\").innerHTML = services.map((s) =>"
+      ],
+      "highlight": [
+        [
+          209,
+          209
+        ]
+      ],
+      "note": "Reconstructed: this version was never committed. It existed only during the session, before the reviewer's fix."
+    }
   }
 ]

@@ -21,10 +21,13 @@ API endpoints include `/api/meta`, `/api/gate`, `/api/team`, `/api/agents`,
 `/api/analytics`, `/api/changes`, `/api/history`, `/api/needtoknow`,
 `/api/todo`, `/api/implemented`, `/api/bugs`, `/api/context`, and `/api/tests`.
 
-The Changes & history tab keeps a plain-English baseline in
-`data/implemented.json` and automatically appends completed M2 tasks from
-`data/todo.json`. Future M2 tasks appear there after their board status becomes
-`done`, without another dashboard code change.
+The Changes & history tab's **Implemented additions** list every completed
+milestone task (M1, M2, ...), grouped by milestone in task order. Plain-English
+entries in `data/implemented.json` take precedence over a task's board copy;
+any `data/todo.json` task whose status becomes `done` appears automatically.
+
+If the page warns that the server is out of date, `server.py` changed after the
+server started (Python does not reload it). Restart the server.
 
 The Context tab is generated from the current filesystem and project board on
 each refresh. It provides an expandable structure tree, an interactive layer
@@ -36,5 +39,20 @@ from the Milestone requirements and feature-spec backlog.
 The Bugs tab reads `tools/dashboard/data/bugs.json`. Subagents can record a
 discovered bug with `POST /api/bugs` and an `add` action containing these
 required fields: `name`, `source`, `details`, `solution`, `subagent`, and
-`discovered_at`. The dashboard does not infer or invent bugs from source-code
+`discovered_at`.
+
+A bug can also carry the code where it lives, shown with the faulty lines
+highlighted in red. Add `file` plus `line`/`endLine`, or `highlight`
+(`[[start, end], ...]` for several ranges). Add `ref` (a git revision) when the
+buggy code has since been fixed, so the snippet shows the code as it was. The
+server captures 3 lines of context around the range into a `snippet` field.
+
+```sh
+curl -X POST localhost:8765/api/bugs -H 'Content-Type: application/json' -d '{
+  "action": "add", "name": "...", "source": "...", "details": "...", "solution": "...",
+  "subagent": "reviewer", "discovered_at": "2026-10-08",
+  "file": "src/main/java/.../ProviderService.java", "highlight": [[71, 71]], "ref": "2c3a234"}'
+```
+
+The dashboard does not infer or invent bugs from source-code
 markers; only explicitly recorded subagent findings appear in this tab.
