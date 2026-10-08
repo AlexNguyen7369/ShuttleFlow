@@ -8,8 +8,8 @@ ShuttleFlow is a CMPE 172 badminton court and coach booking system. This file is
 - Java 17 and Spring Boot 3.3.4.
 - Maven build; use `mvn test` for verification.
 - JDBC through `JdbcTemplate`; do not add JPA, Hibernate, Spring Data, or another ORM.
-- The current local database is file-based H2. Keep SQL portable and document any decision to move to PostgreSQL, which is the database named by the course specification.
-- The backend uses `controller` → `service` → `repository` → database layering. A React/Angular SPA or Thymeleaf frontend is required for Milestone 2; keep frontend-to-backend flow clear and documented.
+- PostgreSQL is the runtime database; in-memory H2 is used only by tests. One portable `schema.sql` serves both, so keep SQL standard.
+- The backend uses `controller` → `service` → `repository` → database layering. The Milestone 2 frontend is the dependency-free static client in `frontend/`; keep frontend-to-backend flow clear and documented.
 
 ## Non-negotiable architecture rules
 
@@ -69,8 +69,8 @@ Implement and test the complete core booking workflow:
 - Treat booking as one atomic transaction: validate/read the slot, reserve it, create the appointment, and update slot state together.
 - Use `@Transactional` at the service boundary and explain the ACID properties for booking.
 - Explicitly document the race: two users attempt to book the same slot simultaneously.
-- Choose and document an isolation/concurrency strategy before implementing it. Prefer an optimistic version check for the current H2/portable setup; if PostgreSQL is adopted, a pessimistic `SELECT ... FOR UPDATE` strategy is also acceptable. Do not silently mix strategies.
-- Keep `UNIQUE (slot_id)` on `appointments` as the database-level backstop. Never replace concurrency control with a Java check-then-insert.
+- The selected strategy is `READ COMMITTED` + pessimistic `SELECT ... FOR UPDATE` on the slot row (see `docs/decisions.md`). Do not silently mix strategies.
+- Keep `UNIQUE (active_slot_id)` on `appointments` as the database-level backstop (equals `slot_id` while `BOOKED`, `NULL` once `CANCELLED`). Never replace concurrency control with a Java check-then-insert.
 - Catch the database conflict and return `409` with the contract's booking-conflict message.
 - Add retry where the selected strategy requires it, with bounded and well-defined behavior.
 - Cancellation must atomically update the appointment and make the slot available again when the feature contract permits rebooking.

@@ -529,56 +529,60 @@ The final submission also requires the GitHub repository link and video link.
 
 ## Implementation checklist
 
+All items verified 2026-10-08 against the running code: `mvn test` (H2) plus the
+PostgreSQL race test, a 37-request HTTP walkthrough against PostgreSQL, and a
+headless-Chrome run of every UI flow. Evidence: `Milestone2/m2-report.md`.
+
 ### Foundation
 
 - [x] Confirm the final database choice: PostgreSQL is the project target; H2 is transitional only.
 - [x] Resolve `BOOKED` versus `CONFIRMED` terminology: use `BOOKED`.
 - [x] Confirm that `COMPLETED` is derived from past `BOOKED` appointments.
-- [ ] Decide how cancelled appointments release a slot while preserving uniqueness safety.
-- [ ] Choose isolation level and concurrency strategy.
-- [ ] Record decisions in `docs/decisions.md`.
+- [x] Decide how cancelled appointments release a slot while preserving uniqueness safety.
+- [x] Choose isolation level and concurrency strategy.
+- [x] Record decisions in `docs/decisions.md`.
 
 ### Authentication/RBAC
 
-- [ ] Add BCrypt hashing/checking dependency and implementation.
-- [ ] Implement login validation and generic credential failures.
-- [ ] Establish and read server-side sessions.
-- [ ] Add role and provider ownership checks.
-- [ ] Test `401` and `403` behavior for every protected route.
+- [x] Add BCrypt hashing/checking dependency and implementation.
+- [x] Implement login validation and generic credential failures.
+- [x] Establish and read server-side sessions.
+- [x] Add role and provider ownership checks.
+- [x] Test `401` and `403` behavior for every protected route.
 
 ### Customer flow
 
-- [ ] Browse/filter/paginate slots.
-- [ ] Book an open slot.
-- [ ] View upcoming appointments.
-- [ ] View appointment history.
-- [ ] Cancel an eligible owned appointment.
-- [ ] Show confirmation in the UI.
+- [x] Browse/filter/paginate slots.
+- [x] Book an open slot.
+- [x] View upcoming appointments.
+- [x] View appointment history.
+- [x] Cancel an eligible owned appointment.
+- [x] Show confirmation in the UI.
 
 ### Provider flow
 
-- [ ] Create own-service availability.
-- [ ] Remove own open availability.
-- [ ] Reject removal when an active appointment exists.
-- [ ] View own provider appointments and customer details.
+- [x] Create own-service availability.
+- [x] Remove own open availability.
+- [x] Reject removal when an active appointment exists.
+- [x] View own provider appointments and customer details.
 
 ### Reliability
 
-- [ ] Add service-level transactions.
-- [ ] Implement and document isolation/concurrency controls.
-- [ ] Preserve database uniqueness backstop.
-- [ ] Add conflict mapping and bounded retry where needed.
-- [ ] Add global error handling without stack traces.
+- [x] Add service-level transactions.
+- [x] Implement and document isolation/concurrency controls.
+- [x] Preserve database uniqueness backstop.
+- [x] Add conflict mapping and bounded retry where needed.
+- [x] Add global error handling without stack traces.
 
 ### Verification
 
-- [ ] Add unit tests for business rules.
-- [ ] Add endpoint/integration tests for all routes.
-- [ ] Add real concurrent same-slot test.
-- [ ] Run `mvn test`.
-- [ ] Run `mvn clean package`.
-- [ ] Update README and feature documentation.
-- [ ] Prepare the report and five-minute code walkthrough.
+- [x] Add unit tests for business rules.
+- [x] Add endpoint/integration tests for all routes.
+- [x] Add real concurrent same-slot test.
+- [x] Run `mvn test`.
+- [x] Run `mvn clean package`.
+- [x] Update README and feature documentation.
+- [x] Prepare the report and five-minute code walkthrough.
 
 ## Definition of done
 

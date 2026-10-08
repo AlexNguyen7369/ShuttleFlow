@@ -1,0 +1,82 @@
+[
+  {
+    "id": "BUG-01",
+    "name": "PostgreSQL generated-key failure on slot creation",
+    "source": "ProviderRepository.createSlot",
+    "details": "RETURN_GENERATED_KEYS makes the PostgreSQL driver return every column, so KeyHolder.getKey() throws and POST /provider/slots returns 500 on the runtime database. H2 tests could not catch it.",
+    "solution": "prepareStatement(sql, new String[]{\"slot_id\"}); the same for appointment_id. Verified live on PostgreSQL.",
+    "status": "fixed",
+    "subagent": "Claude · main (audit)",
+    "discovered_at": "2026-10-08"
+  },
+  {
+    "id": "BUG-02",
+    "name": "Seed slots already in the past",
+    "source": "seed.sql",
+    "details": "Seed slots were fixed at 2026-09-27..29, so after that date every seed slot is unbookable (409) and the demo had nothing to book.",
+    "solution": "Seed relative to CURRENT_DATE with portable interval arithmetic.",
+    "status": "fixed",
+    "subagent": "Claude · main (audit)",
+    "discovered_at": "2026-10-08"
+  },
+  {
+    "id": "BUG-03",
+    "name": "Browse listed past slots",
+    "source": "SlotRepository.findAvailable / countOpen",
+    "details": "OPEN slots that had already started were listed and counted, but booking them always returned 409.",
+    "solution": "Filter start_time > CURRENT_TIMESTAMP; tested in SlotControllerBrowseTest.",
+    "status": "fixed",
+    "subagent": "Claude · main (audit)",
+    "discovered_at": "2026-10-08"
+  },
+  {
+    "id": "BUG-04",
+    "name": "Removing a slot with cancelled history returned 500",
+    "source": "ProviderService.remove",
+    "details": "Book → cancel → provider removes the slot: DELETE violates the appointments.slot_id foreign key and returns 500.",
+    "solution": "Soft-cancel (status CANCELLED) when any appointment references the slot.",
+    "status": "fixed",
+    "subagent": "Claude · main (audit)",
+    "discovered_at": "2026-10-08"
+  },
+  {
+    "id": "BUG-05",
+    "name": "Frontend could not reach the API",
+    "source": "CorsConfig (missing)",
+    "details": "The client on :5173 calls :8080 with credentials, but there was no CORS configuration, so the browser blocked every request.",
+    "solution": "CorsConfig with an explicit origin list and allowCredentials; verified in headless Chrome.",
+    "status": "fixed",
+    "subagent": "Claude · main (audit)",
+    "discovered_at": "2026-10-08"
+  },
+  {
+    "id": "BUG-06",
+    "name": "Unknown routes returned 500",
+    "source": "ApiExceptionHandler",
+    "details": "The catch-all Exception handler turned NoResourceFoundException / 405 / 415 into 500.",
+    "solution": "Keep the ErrorResponse status for framework exceptions.",
+    "status": "fixed",
+    "subagent": "Claude · main (audit)",
+    "discovered_at": "2026-10-08"
+  },
+  {
+    "id": "BUG-07",
+    "name": "Session fixation on login",
+    "source": "AuthService.login",
+    "details": "Login wrote the identity into the existing pre-login session instead of issuing a new one.",
+    "solution": "Invalidate the old session and create a new one; tested.",
+    "status": "fixed",
+    "subagent": "Claude · main (audit)",
+    "discovered_at": "2026-10-08"
+  },
+  {
+    "id": "BUG-08",
+    "name": "Provider slot list capped at 10",
+    "source": "frontend/src/app.js",
+    "details": "The provider workspace read only page 1 of GET /slots?providerId=..., so slots beyond 10 could not be removed from the UI.",
+    "solution": "Page through results until a short page; verified with 15 slots.",
+    "status": "fixed",
+    "subagent": "Claude · reviewer",
+    "discovered_at": "2026-10-08"
+  }
+]

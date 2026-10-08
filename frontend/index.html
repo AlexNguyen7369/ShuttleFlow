@@ -8,14 +8,120 @@
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
-    <header class="topbar"><a class="brand" href="#home">ShuttleFlow</a><nav><a href="#browse">Browse</a><a href="#appointments">My bookings</a><a href="#provider">Provider</a></nav><span id="identity" class="muted">Not signed in</span><button id="logout" hidden>Log out</button></header>
+    <header class="topbar">
+      <a class="brand" href="#home">ShuttleFlow</a>
+      <nav>
+        <a href="#browse">Browse</a>
+        <a href="#appointments" data-role="CUSTOMER">My bookings</a>
+        <a href="#provider" data-role="PROVIDER">Provider</a>
+        <a href="#login" id="login-link">Sign in</a>
+      </nav>
+      <span id="identity" class="muted">Not signed in</span>
+      <button id="logout" hidden>Log out</button>
+    </header>
+
     <main id="app">
-      <section id="home" class="view hero"><p class="eyebrow">Badminton court and coach booking</p><h1>Find your next court time or coaching session.</h1><p>Browse open slots, reserve one securely, and manage your own bookings.</p><a class="button" href="#browse">Browse available slots</a></section>
-      <section id="login" class="view card"><h2>Sign in</h2><form id="login-form"><label>Email<input id="email" type="email" required autocomplete="username"></label><label>Password<input id="password" type="password" required autocomplete="current-password"></label><label class="check"><input id="provider-login" type="checkbox"> Provider login</label><button class="button">Sign in</button><p id="login-error" class="error" role="alert"></p></form></section>
-      <section id="browse" class="view"><div class="section-head"><div><p class="eyebrow">Availability</p><h2>Open slots</h2></div><form id="filter-form" class="filters"><select id="session-type"><option value="">All types</option><option value="OPEN_PLAY">Open play</option><option value="COACHING">Coaching</option></select><input id="service-id" type="number" min="1" placeholder="Service ID"><input id="slot-date" type="date"><button class="button">Filter</button></form></div><p id="browse-message" class="muted"></p><div id="slots" class="grid"></div><div class="pager"><button id="previous">Previous</button><span id="page-label">Page 1</span><button id="next">Next</button></div></section>
-      <section id="appointments" class="view"><div class="section-head"><div><p class="eyebrow">Your account</p><h2>My bookings</h2></div><select id="appointment-view"><option value="upcoming">Upcoming</option><option value="history">History</option></select></div><div id="appointment-list" class="grid"></div></section>
-      <section id="provider" class="view"><div class="section-head"><div><p class="eyebrow">Provider workspace</p><h2>Manage availability</h2></div></div><div class="provider-grid"><div><form id="availability-form" class="card"><h3>Add an open slot</h3><label>Service ID<input id="availability-service" type="number" min="1" required></label><label>Start<input id="availability-start" type="datetime-local" required></label><label>End<input id="availability-end" type="datetime-local" required></label><button class="button">Create slot</button><p id="provider-message" class="muted"></p></form><form id="remove-form" class="card"><h3>Remove an open slot</h3><label>Slot ID<input id="remove-slot" type="number" min="1" required></label><button>Remove slot</button><p id="remove-message" class="muted"></p></form></div><div class="card"><h3>Booked appointments</h3><div id="provider-appointments"></div></div></div></section>
+      <!-- Home -->
+      <section id="home" class="view hero">
+        <p class="eyebrow">Badminton court and coach booking</p>
+        <h1>Find your next court time or coaching session.</h1>
+        <p>Browse open slots, reserve one securely, and manage your own bookings.</p>
+        <p class="muted small" id="home-count"></p>
+        <a class="button" href="#browse">Browse available slots</a>
+      </section>
+
+      <!-- Login (customer or provider) -->
+      <section id="login" class="view card">
+        <h2>Sign in</h2>
+        <form id="login-form">
+          <label>Email<input id="email" type="email" required autocomplete="username" /></label>
+          <label>Password<input id="password" type="password" required autocomplete="current-password" /></label>
+          <label class="check"><input id="provider-login" type="checkbox" /> Provider login</label>
+          <button class="button">Sign in</button>
+          <p id="login-error" class="error" role="alert"></p>
+        </form>
+      </section>
+
+      <!-- Browse, filter, paginate, book -->
+      <section id="browse" class="view">
+        <div class="section-head">
+          <div><p class="eyebrow">Availability</p><h2>Open slots</h2></div>
+          <form id="filter-form" class="filters">
+            <select id="session-type" aria-label="Session type">
+              <option value="">All types</option>
+              <option value="OPEN_PLAY">Open play</option>
+              <option value="COACHING">Coaching</option>
+            </select>
+            <select id="provider-filter" aria-label="Provider">
+              <option value="">All providers</option>
+              <option value="1">Court 3</option>
+              <option value="2">Coach Kim</option>
+            </select>
+            <input id="service-id" type="number" min="1" placeholder="Service ID" aria-label="Service ID" />
+            <input id="slot-date" type="date" aria-label="Date" />
+            <button class="button">Filter</button>
+          </form>
+        </div>
+        <p id="browse-message" class="muted"></p>
+        <div id="slots" class="grid"></div>
+        <div class="pager">
+          <button id="previous">Previous</button>
+          <span id="page-label">Page 1</span>
+          <button id="next">Next</button>
+        </div>
+      </section>
+
+      <!-- Customer appointments -->
+      <section id="appointments" class="view">
+        <div class="section-head">
+          <div><p class="eyebrow">Your account</p><h2>My bookings</h2></div>
+          <select id="appointment-view" aria-label="Booking view">
+            <option value="upcoming">Upcoming</option>
+            <option value="history">History</option>
+          </select>
+        </div>
+        <div id="appointment-list" class="grid"></div>
+      </section>
+
+      <!-- Provider workspace -->
+      <section id="provider" class="view">
+        <div class="section-head">
+          <div><p class="eyebrow">Provider workspace</p><h2>Manage availability</h2></div>
+        </div>
+        <div class="provider-grid">
+          <div class="stack">
+            <form id="availability-form" class="card">
+              <h3>Add an open slot</h3>
+              <label>Service<select id="availability-service" required></select></label>
+              <label>Start<input id="availability-start" type="datetime-local" required /></label>
+              <label>End<input id="availability-end" type="datetime-local" required /></label>
+              <button class="button">Create slot</button>
+              <p id="provider-message" class="muted" role="status"></p>
+            </form>
+            <div class="card">
+              <h3>My open slots</h3>
+              <div id="provider-slots"></div>
+              <p id="remove-message" class="muted" role="status"></p>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Booked appointments</h3>
+            <div id="provider-appointments"></div>
+          </div>
+        </div>
+      </section>
     </main>
+
+    <!-- Booking confirmation: step 1 confirms the choice, step 2 shows the stored booking. -->
+    <dialog id="booking-dialog" class="card">
+      <div id="booking-body"></div>
+      <p id="booking-error" class="error" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="booking-cancel" type="button">Close</button>
+        <button id="booking-confirm" class="button" type="button">Confirm booking</button>
+      </div>
+    </dialog>
+
     <div id="toast" class="toast" role="status"></div>
     <script type="module" src="./src/app.js"></script>
   </body>

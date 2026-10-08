@@ -253,7 +253,7 @@ def context_architecture():
         "controller": {"name": "Controller", "summary": "Receives HTTP requests and returns API responses.", "paths": [p for p in files if "/controller/" in f"/{p}"]},
         "service": {"name": "Service", "summary": "Owns validation, authorization, booking rules, and transactions.", "paths": [p for p in files if "/service/" in f"/{p}"]},
         "repository": {"name": "Repository", "summary": "Runs parameterized SQL through JdbcTemplate.", "paths": [p for p in files if "/repository/" in f"/{p}"]},
-        "database": {"name": "Database", "summary": "Schema, seed data, and the current H2/PostgreSQL transition.", "paths": [p for p in files if p.endswith(("schema.sql", "seed.sql", "application.properties"))]},
+        "database": {"name": "Database", "summary": "Schema, seed data, and PostgreSQL/H2 configuration.", "paths": [p for p in files if p.endswith(("schema.sql", "seed.sql", "application.properties"))]},
         "tests": {"name": "Tests", "summary": "Service, endpoint, and concurrent-booking verification.", "paths": [p for p in files if "/test/" in f"/{p}"]},
     }
     return {"nodes": list(groups.values()), "connections": [
@@ -279,7 +279,7 @@ def project_context():
             {"name": "Browser", "summary": "Static frontend sends booking/auth requests."},
             {"name": "Spring Boot 3.3.4 / Java 17", "summary": "Controllers, services, repositories, sessions, DTOs, and global errors."},
             {"name": "JdbcTemplate", "summary": "Repositories own portable parameterized SQL."},
-            {"name": "H2 local database", "summary": "Current file-based local/test database; PostgreSQL is the project target."},
+            {"name": "PostgreSQL / H2", "summary": "PostgreSQL at runtime; in-memory H2 for tests; one portable schema.sql with FOR UPDATE + UNIQUE (active_slot_id)."},
         ],
         "projected": projected,
         "specifications": feature_specs,

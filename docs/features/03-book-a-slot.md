@@ -6,7 +6,7 @@ Request body: `{ "slotId": 4 }`
 
 ## Acceptance criteria
 - Logged-in customer books an OPEN slot → 201, appointment created with status BOOKED, slot no longer OPEN
-- Slot is already booked (including two simultaneous requests) → 409 "Court is already booked."; the `UNIQUE (slot_id)` constraint is the guard, and the service layer catches the violation
+- Slot is already booked (including two simultaneous requests) → 409 "Court is already booked."; the slot row lock (`SELECT ... FOR UPDATE`) serialises competing requests and the `UNIQUE (active_slot_id)` constraint is the database backstop; the service layer translates a violation to this 409
 - Slot doesn't exist → 404
 - Slot start time is in the past → 409
 - Missing or invalid `slotId` → 400

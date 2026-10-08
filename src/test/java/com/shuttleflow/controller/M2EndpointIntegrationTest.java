@@ -154,6 +154,165 @@ class M2EndpointIntegrationTest {
                 .andExpect(status().isConflict());
     }
 
+    @Test
+    void pastSlotBookingIsConflictAndMismatchedServiceIsBadRequest() throws Exception {
+        long pastSlot = insertSlot(LocalDateTime.now().minusHours(2).withNano(0));
+        long futureSlot = insertSlot(LocalDateTime.now().plusDays(2).withNano(0));
+        MockHttpSession customer = login("alex@shuttleflow.com", "alex-test", "/auth/login");
+        mvc.perform(post("/appointments").session(customer).contentType("application/json")
+                        .content("{\"slotId\":" + pastSlot + "}"))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/appointments").session(customer).contentType("application/json")
+                        .content("{\"slotId\":" + futureSlot + ",\"serviceId\":3}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/appointments").session(customer).contentType("application/json")
+                        .content("{\"slotId\":\"abc\"}"))
+                .andExpect(status().isBadRequest());
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM appointments", Integer.class));
+    }
+
+    @Test
+    void appointmentListIsCustomerOnlyScopedToCallerAndValidatesView() throws Exception {
+        long slotId = insertSlot(LocalDateTime.now().plusDays(2).withNano(0));
+        MockHttpSession alex = login("alex@shuttleflow.com", "alex-test", "/auth/login");
+        mvc.perform(post("/appointments").session(alex).contentType("application/json")
+                        .content("{\"slotId\":" + slotId + "}"))
+                .andExpect(status().isCreated());
+        MockHttpSession jamie = login("jamie@shuttleflow.com", "jamie-test", "/auth/login");
+        mvc.perform(get("/appointments").session(jamie)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get("/appointments")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/appointments?view=everything").session(alex)).andExpect(status().isBadRequest());
+        MockHttpSession provider = login("court.manager@shuttleflow.com", "court-manager-test", "/auth/provider/login");
+        mvc.perform(get("/appointments").session(provider)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void pastBookedAppointmentShowsAsCompletedInHistoryAndCannotBeCancelled() throws Exception {
+        long slotId = insertSlot(LocalDateTime.now().minusDays(1).withNano(0));
+        jdbc.update("UPDATE availability_slots SET status = 'BOOKED' WHERE slot_id = ?", slotId);
+        jdbc.update("INSERT INTO appointments (slot_id, user_id, status, active_slot_id) VALUES (?, 3, 'BOOKED', ?)",
+                slotId, slotId);
+        long appointmentId = jdbc.queryForObject("SELECT appointment_id FROM appointments WHERE slot_id = ?",
+                Long.class, slotId);
+        MockHttpSession alex = login("alex@shuttleflow.com", "alex-test", "/auth/login");
+        mvc.perform(get("/appointments?view=history").session(alex)).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status").value("COMPLETED"));
+        mvc.perform(get("/appointments?view=upcoming").session(alex)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(delete("/appointments/" + appointmentId).session(alex)).andExpect(status().isConflict());
+        mvc.perform(delete("/appointments/999999").session(alex)).andExpect(status().isNotFound());
+        mvc.perform(delete("/appointments/" + appointmentId)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void providerAvailabilityValidationAndOwnershipStatuses() throws Exception {
+        MockHttpSession provider = login("court.manager@shuttleflow.com", "court-manager-test", "/auth/provider/login");
+        LocalDateTime start = LocalDateTime.now().plusDays(6).withNano(0);
+        mvc.perform(post("/provider/slots").session(provider).contentType("application/json")
+                        .content(availability(999, start, start.plusHours(1))))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/provider/slots").session(provider).contentType("application/json")
+                        .content(availability(1, start, start.minusHours(1))))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/provider/slots").session(provider).contentType("application/json")
+                        .content(availability(1, LocalDateTime.now().minusDays(1).withNano(0), LocalDateTime.now().withNano(0))))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/provider/slots").contentType("application/json")
+                        .content(availability(1, start, start.plusHours(1))))
+                .andExpect(status().isUnauthorized());
+        MockHttpSession customer = login("alex@shuttleflow.com", "alex-test", "/auth/login");
+        mvc.perform(post("/provider/slots").session(customer).contentType("application/json")
+                        .content(availability(1, start, start.plusHours(1))))
+                .andExpect(status().isForbidden());
+
+        long coachSlot = insertCoachSlot(start);
+        mvc.perform(delete("/provider/slots/" + coachSlot).session(provider)).andExpect(status().isForbidden());
+        mvc.perform(delete("/provider/slots/999999").session(provider)).andExpect(status().isNotFound());
+        mvc.perform(delete("/provider/slots/" + coachSlot).session(customer)).andExpect(status().isForbidden());
+        mvc.perform(delete("/provider/slots/" + coachSlot)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void createdAvailabilityAppearsInBrowseAndRemovalHidesIt() throws Exception {
+        MockHttpSession provider = login("coach.kim@shuttleflow.com", "coach-kim-test", "/auth/provider/login");
+        LocalDateTime start = LocalDateTime.now().plusDays(5).withNano(0);
+        String body = mvc.perform(post("/provider/slots").session(provider).contentType("application/json")
+                        .content(availability(3, start, start.plusHours(1))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.serviceName").value("Private Coaching Session"))
+                .andReturn().getResponse().getContentAsString();
+        long slotId = Long.parseLong(body.replaceAll(".*\"slotId\":(\\d+).*", "$1"));
+        mvc.perform(get("/slots?sessionType=COACHING")).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].slotId").value(slotId));
+        mvc.perform(delete("/provider/slots/" + slotId).session(provider)).andExpect(status().isNoContent());
+        mvc.perform(get("/slots?sessionType=COACHING")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void removingSlotWithCancelledHistoryKeepsHistoryAndHidesSlot() throws Exception {
+        long slotId = insertSlot(LocalDateTime.now().plusDays(3).withNano(0));
+        MockHttpSession customer = login("alex@shuttleflow.com", "alex-test", "/auth/login");
+        mvc.perform(post("/appointments").session(customer).contentType("application/json")
+                        .content("{\"slotId\":" + slotId + "}"))
+                .andExpect(status().isCreated());
+        long appointmentId = jdbc.queryForObject("SELECT appointment_id FROM appointments WHERE slot_id = ?",
+                Long.class, slotId);
+        mvc.perform(delete("/appointments/" + appointmentId).session(customer)).andExpect(status().isNoContent());
+
+        MockHttpSession provider = login("court.manager@shuttleflow.com", "court-manager-test", "/auth/provider/login");
+        mvc.perform(delete("/provider/slots/" + slotId).session(provider)).andExpect(status().isNoContent());
+        assertEquals("CANCELLED", jdbc.queryForObject("SELECT status FROM availability_slots WHERE slot_id = ?",
+                String.class, slotId));
+        mvc.perform(get("/slots")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get("/appointments?view=history").session(customer)).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status").value("CANCELLED"));
+    }
+
+    @Test
+    void providerSeesOnlyOwnBookingsWithCustomerDetails() throws Exception {
+        long courtSlot = insertSlot(LocalDateTime.now().plusDays(2).withNano(0));
+        long coachSlot = insertCoachSlot(LocalDateTime.now().plusDays(2).withNano(0));
+        MockHttpSession jamie = login("jamie@shuttleflow.com", "jamie-test", "/auth/login");
+        for (long slot : new long[] {courtSlot, coachSlot}) {
+            mvc.perform(post("/appointments").session(jamie).contentType("application/json")
+                            .content("{\"slotId\":" + slot + "}"))
+                    .andExpect(status().isCreated());
+        }
+        MockHttpSession coach = login("coach.kim@shuttleflow.com", "coach-kim-test", "/auth/provider/login");
+        mvc.perform(get("/provider/appointments").session(coach)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].slotId").value(coachSlot))
+                .andExpect(jsonPath("$[0].customerName").value("Jamie Lee"))
+                .andExpect(jsonPath("$[0].customerEmail").value("jamie@shuttleflow.com"));
+    }
+
+    @Test
+    void providerServicesListsOnlyOwnServicesAndIsProviderOnly() throws Exception {
+        MockHttpSession court = login("court.manager@shuttleflow.com", "court-manager-test", "/auth/provider/login");
+        mvc.perform(get("/provider/services").session(court)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value("Singles Court Rental"))
+                .andExpect(jsonPath("$[1].durationMin").value(60));
+        MockHttpSession customer = login("alex@shuttleflow.com", "alex-test", "/auth/login");
+        mvc.perform(get("/provider/services").session(customer)).andExpect(status().isForbidden());
+        mvc.perform(get("/provider/services")).andExpect(status().isUnauthorized());
+    }
+
+    private String availability(long serviceId, LocalDateTime start, LocalDateTime end) {
+        return "{\"serviceId\":" + serviceId + ",\"startTime\":\"" + start + "\",\"endTime\":\"" + end + "\"}";
+    }
+
+    private long insertCoachSlot(LocalDateTime start) {
+        jdbc.update("""
+                INSERT INTO availability_slots (provider_id, service_id, start_time, end_time, status)
+                VALUES (2, 3, ?, ?, 'OPEN')
+                """, start, start.plusHours(1));
+        return jdbc.queryForObject("SELECT slot_id FROM availability_slots WHERE provider_id = 2 AND start_time = ?",
+                Long.class, start);
+    }
+
     private long insertSlot(LocalDateTime start) {
         jdbc.update("""
                 INSERT INTO availability_slots (provider_id, service_id, start_time, end_time, status)

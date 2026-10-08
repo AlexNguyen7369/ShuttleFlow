@@ -9,7 +9,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -25,7 +27,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class SlotControllerBrowseTest {
 
-    private static final LocalDateTime BASE = LocalDateTime.of(2026, 10, 1, 8, 0);
+    // Browsing only lists future slots, so the fixtures are anchored 30 days ahead of today.
+    private static final LocalDateTime BASE = LocalDate.now().plusDays(30).atTime(8, 0);
+
+    /** The JSON timestamp of BASE + offsetHours, as Jackson serializes LocalDateTime. */
+    private static String at(int offsetHours) {
+        return BASE.plusHours(offsetHours).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+    }
 
     @Autowired
     private MockMvc mvc;
@@ -71,9 +79,9 @@ class SlotControllerBrowseTest {
         mvc.perform(get("/slots"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(10))
-                .andExpect(jsonPath("$[0].startTime").value("2026-10-01T08:00:00"))
-                .andExpect(jsonPath("$[1].startTime").value("2026-10-01T09:00:00"))
-                .andExpect(jsonPath("$[9].startTime").value("2026-10-01T17:00:00"));
+                .andExpect(jsonPath("$[0].startTime").value(at(0)))
+                .andExpect(jsonPath("$[1].startTime").value(at(1)))
+                .andExpect(jsonPath("$[9].startTime").value(at(9)));
     }
 
     @Test
@@ -82,12 +90,12 @@ class SlotControllerBrowseTest {
         mvc.perform(get("/slots").param("page", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(10))
-                .andExpect(jsonPath("$[0].startTime").value("2026-10-01T18:00:00"))
-                .andExpect(jsonPath("$[9].startTime").value("2026-10-02T03:00:00"));
+                .andExpect(jsonPath("$[0].startTime").value(at(10)))
+                .andExpect(jsonPath("$[9].startTime").value(at(19)));
         mvc.perform(get("/slots").param("page", "3"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(5))
-                .andExpect(jsonPath("$[0].startTime").value("2026-10-02T04:00:00"));
+                .andExpect(jsonPath("$[0].startTime").value(at(20)));
     }
 
     @Test
@@ -96,7 +104,7 @@ class SlotControllerBrowseTest {
         mvc.perform(get("/slots"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(10))
-                .andExpect(jsonPath("$[0].startTime").value("2026-10-01T08:00:00"));
+                .andExpect(jsonPath("$[0].startTime").value(at(0)));
     }
 
     @Test
@@ -179,7 +187,7 @@ class SlotControllerBrowseTest {
                         .param("page", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].startTime").value("2026-10-01T18:00:00"))
+                .andExpect(jsonPath("$[0].startTime").value(at(10)))
                 .andExpect(jsonPath("$[?(@.providerName != 'Court 3')]").isEmpty());
     }
 
@@ -194,8 +202,8 @@ class SlotControllerBrowseTest {
         mvc.perform(get("/slots"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].startTime").value("2026-10-01T08:00:00"))
-                .andExpect(jsonPath("$[1].startTime").value("2026-10-01T11:00:00"));
+                .andExpect(jsonPath("$[0].startTime").value(at(0)))
+                .andExpect(jsonPath("$[1].startTime").value(at(3)));
     }
 
     @Test
@@ -219,8 +227,8 @@ class SlotControllerBrowseTest {
                 .andExpect(jsonPath("$[0].slotId").isNumber())
                 .andExpect(jsonPath("$[0].providerName").value("Court 3"))
                 .andExpect(jsonPath("$[0].serviceName").value("Singles Court Rental"))
-                .andExpect(jsonPath("$[0].startTime").value("2026-10-01T08:00:00"))
-                .andExpect(jsonPath("$[0].endTime").value("2026-10-01T09:00:00"))
+                .andExpect(jsonPath("$[0].startTime").value(at(0)))
+                .andExpect(jsonPath("$[0].endTime").value(at(1)))
                 .andExpect(jsonPath("$[0].price").value(20.0));
     }
 
@@ -249,5 +257,54 @@ class SlotControllerBrowseTest {
     void unknownSessionType_returns400() throws Exception {
         mvc.perform(get("/slots").param("sessionType", "FOO"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // --- M2 filters and time window ---
+
+    @Test
+    void pastOpenSlotsAreNotListed() throws Exception {
+        LocalDateTime past = LocalDateTime.now().minusDays(1).withNano(0);
+        jdbc.update("INSERT INTO availability_slots (provider_id, service_id, start_time, end_time, status)"
+                + " VALUES (?, 1, ?, ?, 'OPEN')", courtId, past, past.plusHours(1));
+        slot(courtId, 0, "OPEN");
+        mvc.perform(get("/slots"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].startTime").value(at(0)));
+    }
+
+    @Test
+    void serviceIdFilter_returnsOnlyThatServicesSlots() throws Exception {
+        long doubles = jdbc.queryForObject("SELECT service_id FROM services WHERE name = ?", Long.class,
+                "Doubles Court Rental");
+        openSlots(courtId, 3, 0);
+        LocalDateTime start = BASE.plusHours(5);
+        jdbc.update("INSERT INTO availability_slots (provider_id, service_id, start_time, end_time, status)"
+                + " VALUES (?, ?, ?, ?, 'OPEN')", courtId, doubles, start, start.plusHours(1));
+        mvc.perform(get("/slots").param("serviceId", String.valueOf(doubles)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].serviceName").value("Doubles Court Rental"));
+    }
+
+    @Test
+    void dateFilter_returnsOnlySlotsStartingThatDay() throws Exception {
+        openSlots(courtId, 30, 0); // BASE 08:00 through the next day 13:00
+        mvc.perform(get("/slots").param("date", BASE.toLocalDate().plusDays(1).toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(10))
+                .andExpect(jsonPath("$[0].startTime").value(at(16)));
+        mvc.perform(get("/slots").param("date", BASE.toLocalDate().plusDays(1).toString()).param("page", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4));
+    }
+
+    @Test
+    void malformedOrPastDateAndBadIds_return400() throws Exception {
+        mvc.perform(get("/slots").param("date", "not-a-date")).andExpect(status().isBadRequest());
+        mvc.perform(get("/slots").param("date", LocalDate.now().minusDays(1).toString()))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/slots").param("serviceId", "0")).andExpect(status().isBadRequest());
+        mvc.perform(get("/slots").param("providerId", "-4")).andExpect(status().isBadRequest());
     }
 }

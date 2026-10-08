@@ -75,10 +75,42 @@ Milestone 1 itself is only the design + a read-only skeleton (`GET /`, `GET /slo
    flow.
 2. **Cancellation and rebooking: preserve history and allow rebooking.** Mark
    the appointment `CANCELLED`, clear its `active_slot_id`, return the slot to
-   `OPEN`, and enforce one active booking with a PostgreSQL partial unique
-   index on `slot_id` and an H2-compatible unique active-slot key. This preserves customer
-   history while preventing two active bookings.
+   `OPEN`, and enforce one active booking with `UNIQUE (active_slot_id)`.
+   *(Updated 2026-10-08: the PostgreSQL-only partial index was replaced by this
+   portable key so runtime and tests share one `schema.sql`; a `CHECK` ties
+   `active_slot_id = slot_id` to `BOOKED` and `NULL` to `CANCELLED`.)* This
+   preserves customer history while preventing two active bookings.
 3. **Completed appointments: derive `COMPLETED`.** Keep the stored status as
    `BOOKED` or `CANCELLED`; present a booked appointment whose start time is in
    the past as `COMPLETED` in history queries. This avoids a scheduler and
    prevents status drift.
+
+## Resolved M2 decisions — 2026-10-08
+
+1. **No booking retry.** With `READ COMMITTED` plus `SELECT ... FOR UPDATE`,
+   a losing request blocks, then reads the winner's committed `BOOKED` state —
+   its `409` is final, so a retry could never succeed. PostgreSQL raises no
+   serialization failures at this level. A lock timeout or deadlock victim
+   (`PessimisticLockingFailureException`) is mapped to a safe `409 "The slot is
+   busy right now. Please try again."` so the client can retry by hand.
+2. **Browsing lists only future slots.** `GET /slots` and the home count filter
+   `start_time > CURRENT_TIMESTAMP`; a past `OPEN` slot can never be booked
+   anyway (`409`), so listing it would only produce failures.
+3. **Slot removal with history.** A provider's `DELETE /provider/slots/{id}`
+   hard-deletes an open slot that no appointment ever referenced. If cancelled
+   appointments still reference it, the slot is set to `CANCELLED` instead
+   (foreign keys would reject a delete, and the customer's history must
+   survive). Either way it disappears from browsing. Re-adding the same start
+   time afterwards returns `409` because `UNIQUE (provider_id, start_time)` still
+   holds.
+4. **Customer-only appointment views.** `GET /appointments` requires a
+   `CUSTOMER` session (`403` for providers, who use `GET /provider/appointments`).
+5. **Session fixation.** Login invalidates any existing session and issues a
+   new one before storing the identity. `GET /auth/session` returns the
+   current identity so the UI can restore itself after a reload.
+6. **Frontend origin.** The static client runs on its own port (5173), so
+   `CorsConfig` allows that explicit origin with credentials (never `*`);
+   override with `SHUTTLEFLOW_CORS_ORIGINS`.
+7. **Seed data.** Seed slots use `CAST(CURRENT_DATE AS TIMESTAMP) + INTERVAL ...`
+   so they are always in the future on boot; the expression is portable across
+   PostgreSQL and H2.

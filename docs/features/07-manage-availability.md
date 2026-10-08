@@ -6,6 +6,8 @@ Status: implemented (2026-10-08)
 
 Request body for POST: `{ "serviceId": 1, "startTime": "2026-10-04T18:00:00", "endTime": "2026-10-04T19:00:00" }`
 
+Supporting endpoint: `GET /provider/services` → 200 with the provider's own services (feeds the availability form); 401/403 as below.
+
 ## Acceptance criteria
 
 ### Create (POST /provider/slots)
@@ -18,7 +20,7 @@ Request body for POST: `{ "serviceId": 1, "startTime": "2026-10-04T18:00:00", "e
 - Not logged in → 401; CUSTOMER → 403
 
 ### Remove (DELETE /provider/slots/{id})
-- Provider removes their own OPEN slot → 204, slot no longer appears in `GET /slots`
+- Provider removes their own OPEN slot → 204, slot no longer appears in `GET /slots` (deleted, or set to CANCELLED when cancelled appointment history references it)
 - Slot belongs to a different provider → 403
 - Slot doesn't exist → 404
 - Slot has a confirmed appointment → 409 (booking must be cancelled first)

@@ -120,3 +120,16 @@ service-layer dependencies it needs before the next feature is added.
 - [x] Add service unit tests for validation, authorization, ownership, and conflicts.
 - [x] Run `mvn test` and `mvn clean package` after implementation.
 - [x] Update README, feature docs, decisions, report, and walkthrough to match code.
+
+## End-to-end verification — 2026-10-08
+
+Each line was re-checked against running code, not just read off the code.
+Details are in `Milestone2/m2-summary.md` and `Milestone2/m2-report.md`.
+
+- [x] App boots on PostgreSQL 16 (`shuttleflow` DB) with the shared `schema.sql` and future-dated seed.
+- [x] `curl` walkthrough (37 requests): login equivalence (401/401), 400 missing credentials, provider login 403 for a customer, session restore, booking 201/409/403/404/400/401, slot hidden after booking, customer isolation 403, provider view + 403 for customers, remove-booked 409, cancel 204 then 409, history CANCELLED, rebooking 201, provider create 201/409/403/404/400/400, remove 403/204, soft-cancel slot with history, logout then 401, unknown route 404, CORS preflight 200.
+- [x] Headless Chrome: home count, filter, sign-in redirect, bad login message, customer login + role-aware nav, booking dialog → confirmation, my bookings, reload keeps session, cancel → history, logout, provider login + service picker, create/duplicate/remove slot, provider sees all slots across pages, no console errors.
+- [x] Real PostgreSQL race: 8 threads × 10 rounds → exactly 1 booking per round.
+- [x] `mvn test` 78/78 (JDK 17 + PostgreSQL), 68 + 1 skipped (JDK 27); `mvn clean package` OK.
+- [x] Reviewer agent PASS; its finding (provider slot list capped at 10) fixed and re-verified.
+- [ ] Manual submission steps: report PDF, recorded walkthrough video, submission zip + links.
