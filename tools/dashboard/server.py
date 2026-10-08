@@ -138,6 +138,25 @@ def history():
     return [{"sha": p[0], "author": p[1], "date": p[2], "subject": p[3]} for line in out.splitlines() if len(p := line.split("\t", 3)) == 4]
 
 
+def implemented_additions():
+    """Return the written M2 history plus newly completed M2 board tasks."""
+    written = read_board("implemented.json", [])
+    known_ids = {str(item.get("id", "")) for item in written}
+    dynamic = []
+    for item in read_board("todo.json", []):
+        item_id = str(item.get("id", ""))
+        if item.get("status") != "done" or not item_id.startswith("M2-") or item_id in known_ids:
+            continue
+        dynamic.append({
+            "id": item_id,
+            "title": item.get("title", "Completed M2 task"),
+            "detail": item.get("detail", ""),
+            "date": str(item.get("completed") or item.get("started") or "")[:10],
+            "source": "dashboard task board"
+        })
+    return written + dynamic
+
+
 def branches():
     code, out, _ = git("branch", "-a", "--format=%(refname:short)")
     return [{"name": x, "current": x == current_branch()} for x in out.splitlines()] if code == 0 else []
@@ -180,17 +199,107 @@ def read_board(name, default):
     return read_json(DATA / name, default)
 
 
+TREE_IGNORES = {".git", ".idea", ".venv", "__pycache__", "node_modules", "target", "data"}
+
+
+def context_summary(path, is_dir):
+    """Give tree nodes a useful summary without requiring a checked-in map."""
+    name = path.name if path != ROOT else ROOT.name
+    relative = str(path.relative_to(ROOT)) if path != ROOT else "."
+    if is_dir:
+        summaries = {
+            "src": "Application source: HTTP controllers, business services, repositories, DTOs, authentication, and tests.",
+            "frontend": "Browser-facing entry point and presentation assets for the booking workflow.",
+            "docs": "Feature contracts, schema notes, design decisions, and milestone evidence.",
+            "tools": "Project tooling, including the live engineering dashboard.",
+            "resources": "Runtime configuration, database schema, and seed data.",
+            "main": "Spring Boot application code organized by architectural layer.",
+            "test": "Automated unit, endpoint, integration, and concurrency coverage.",
+        }
+        return summaries.get(name, f"Project area containing {relative}.")
+    suffix = path.suffix.lower()
+    if "/controller/" in f"/{relative}/": return "HTTP boundary: translates requests and responses."
+    if "/service/" in f"/{relative}/": return "Business rules, validation, authorization, and transaction boundary."
+    if "/repository/" in f"/{relative}/": return "Parameterized SQL and database access."
+    if "/dto/" in f"/{relative}/": return "Immutable request or response shape crossing the API boundary."
+    if "/auth/" in f"/{relative}/": return "Session and role context used by the security boundary."
+    if suffix in {".sql", ".properties", ".yml", ".yaml"}: return "Runtime/database configuration used by the Spring application."
+    if suffix in {".md", ".pdf"}: return "Project documentation or specification evidence."
+    if suffix in {".js", ".css", ".html"}: return "Frontend/dashboard presentation asset."
+    if suffix == ".java": return "Java application or test source."
+    return "Project file."
+
+
+def context_tree(path, depth=0):
+    is_dir = path.is_dir()
+    node = {"name": path.name if path != ROOT else ROOT.name, "path": "." if path == ROOT else str(path.relative_to(ROOT)), "kind": "directory" if is_dir else "file", "summary": context_summary(path, is_dir)}
+    if is_dir:
+        try:
+            children = [child for child in path.iterdir() if child.name not in TREE_IGNORES and not child.name.startswith(".")]
+        except OSError:
+            children = []
+        node["children"] = [context_tree(child, depth + 1) for child in sorted(children, key=lambda item: (not item.is_dir(), item.name.lower()))]
+    return node
+
+
+def context_architecture():
+    files = []
+    for directory in project_dirs():
+        for path in directory.rglob("*"):
+            if path.is_file() and not any(part in TREE_IGNORES for part in path.parts):
+                files.append(str(path.relative_to(ROOT)))
+    groups = {
+        "frontend": {"name": "Frontend", "summary": "User-facing booking screens and browser assets.", "paths": [p for p in files if p.startswith("frontend/")]},
+        "controller": {"name": "Controller", "summary": "Receives HTTP requests and returns API responses.", "paths": [p for p in files if "/controller/" in f"/{p}"]},
+        "service": {"name": "Service", "summary": "Owns validation, authorization, booking rules, and transactions.", "paths": [p for p in files if "/service/" in f"/{p}"]},
+        "repository": {"name": "Repository", "summary": "Runs parameterized SQL through JdbcTemplate.", "paths": [p for p in files if "/repository/" in f"/{p}"]},
+        "database": {"name": "Database", "summary": "Schema, seed data, and the current H2/PostgreSQL transition.", "paths": [p for p in files if p.endswith(("schema.sql", "seed.sql", "application.properties"))]},
+        "tests": {"name": "Tests", "summary": "Service, endpoint, and concurrent-booking verification.", "paths": [p for p in files if "/test/" in f"/{p}"]},
+    }
+    return {"nodes": list(groups.values()), "connections": [
+        {"from": "frontend", "to": "controller", "label": "HTTP/JSON"},
+        {"from": "controller", "to": "service", "label": "method calls"},
+        {"from": "service", "to": "repository", "label": "rules + transactions"},
+        {"from": "repository", "to": "database", "label": "JdbcTemplate / SQL"},
+        {"from": "tests", "to": "service", "label": "unit + integration coverage"},
+    ]}
+
+
+def project_context():
+    projected = [item for item in read_board("todo.json", []) if item.get("status") != "done"]
+    feature_specs = []
+    feature_dir = ROOT / "docs" / "features"
+    if feature_dir.exists():
+        feature_specs = [{"name": path.stem, "path": str(path.relative_to(ROOT))} for path in sorted(feature_dir.glob("*.md"))]
+    return {
+        "generated_at": iso(),
+        "tree": context_tree(ROOT),
+        "architecture": context_architecture(),
+        "stack": [
+            {"name": "Browser", "summary": "Static frontend sends booking/auth requests."},
+            {"name": "Spring Boot 3.3.4 / Java 17", "summary": "Controllers, services, repositories, sessions, DTOs, and global errors."},
+            {"name": "JdbcTemplate", "summary": "Repositories own portable parameterized SQL."},
+            {"name": "H2 local database", "summary": "Current file-based local/test database; PostgreSQL is the project target."},
+        ],
+        "projected": projected,
+        "specifications": feature_specs,
+    }
+
+
 def payload(route):
     project = detect_project()
-    if route == "/api/meta": return {"project": project, "dashboard": "project-dashboard", "features": ["team", "needs_you", "agents", "analytics", "changes", "history", "todo", "tests"], "port": PORT}
+    if route == "/api/meta": return {"project": project, "dashboard": "project-dashboard", "features": ["team", "needs_you", "agents", "analytics", "changes", "history", "todo", "bugs", "context", "tests"], "port": PORT}
     if route == "/api/gate": return gate()
     if route == "/api/team": return {"branch": current_branch(), "branches": branches()}
     if route == "/api/changes": return {"status": status(), "files": changes()}
     if route == "/api/history": return {"commits": history()}
+    if route == "/api/implemented": return {"items": implemented_additions()}
     if route == "/api/tests": return {"detected": tests()}
     if route == "/api/todo": return {"items": read_board("todo.json", [])}
     if route == "/api/manual": return {"items": read_board("manual.json", [])}
     if route == "/api/suggestions": return {"items": read_board("suggestions.json", [])}
+    if route == "/api/bugs": return {"items": read_board("bugs.json", [])}
+    if route == "/api/context": return project_context()
     if route == "/api/needtoknow": return {"items": files_matching(re.compile(r"TODO|FIXME|NEEDS[- ]YOU|BLOCKED", re.I))[:50]}
     if route == "/api/agents": return {"items": read_board("agents.json", []), "sources": [x for x in (".agents", ".claude", ".codex") if (ROOT / x).exists()]}
     if route == "/api/analytics": return {"commits": len(history()), "changed_files": len(changes()), "detected_tests": len(tests()), "languages": project["languages"]}
@@ -217,12 +326,19 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         try: body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
         except ValueError: self.send_json({"error": "invalid JSON"}, 400); return
-        mapping = {"/api/todo": "todo.json", "/api/manual": "manual.json", "/api/suggestions": "suggestions.json"}
+        mapping = {"/api/todo": "todo.json", "/api/manual": "manual.json", "/api/suggestions": "suggestions.json", "/api/bugs": "bugs.json"}
         if path not in mapping: self.send_json({"error": "not found"}, 404); return
         with LOCK:
             items = read_board(mapping[path], [])
             if body.get("action") == "add":
-                item = {**body, "id": next_task_id(items, body.get("milestone", "M2")), "milestone": body.get("milestone", "M2"), "created": iso()}
+                if path == "/api/bugs":
+                    required = ("name", "source", "details", "solution", "subagent", "discovered_at")
+                    missing = [field for field in required if not str(body.get(field, "")).strip()]
+                    if missing: self.send_json({"error": f"missing bug fields: {', '.join(missing)}"}, 400); return
+                    item = {field: str(body[field]).strip() for field in required}
+                    item["id"] = f"BUG-{len(items) + 1:03d}"
+                else:
+                    item = {**body, "id": next_task_id(items, body.get("milestone", "M2")), "milestone": body.get("milestone", "M2"), "created": iso()}
                 items.append(item)
             elif body.get("action") == "move" and path == "/api/todo":
                 if body.get("status") not in {"next", "doing"}: self.send_json({"error": "tasks can move only to next or doing"}, 400); return

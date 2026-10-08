@@ -1,8 +1,9 @@
 # Feature 4: View my upcoming bookings and history
 Endpoint: GET /appointments?view={upcoming|history}
+Status: implemented (2026-10-08)
 
 ## Acceptance criteria
-- `view=upcoming` → 200, the caller's CONFIRMED appointments whose slot starts in the future, soonest first
+- `view=upcoming` → 200, the caller's BOOKED appointments whose slot starts in the future, soonest first
 - `view=history` → 200, the caller's past appointments (and cancelled ones), most recent first
 - `view` omitted → defaults to `upcoming`
 - Each item includes appointmentId, providerName, serviceName, startTime, endTime, status

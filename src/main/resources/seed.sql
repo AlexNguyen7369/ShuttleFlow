@@ -1,8 +1,9 @@
 INSERT INTO users (email, password_hash, full_name, role) VALUES
-('court.manager@shuttleflow.com', 'placeholder_hash_1', 'Court Manager', 'PROVIDER'),
-('coach.kim@shuttleflow.com',     'placeholder_hash_2', 'Coach Kim',     'PROVIDER'),
-('alex@shuttleflow.com',          'placeholder_hash_3', 'Alex Nguyen',   'CUSTOMER'),
-('jamie@shuttleflow.com',         'placeholder_hash_4', 'Jamie Lee',     'CUSTOMER');
+-- BCrypt hashes for the documented local-only test passwords.
+('court.manager@shuttleflow.com', '$2a$10$cLUH.RnpLXYLEKUD88ZgROj7nCcTAorHLMAPckntZH1LKazW7fusi', 'Court Manager', 'PROVIDER'),
+('coach.kim@shuttleflow.com',     '$2a$10$.gQObBoo78jf2kTIM/4J3eVMh9U9CnyUog27duZ.I51uOUOixybO2', 'Coach Kim',     'PROVIDER'),
+('alex@shuttleflow.com',          '$2a$10$YpmeOR7gkPQzLu0kyP5IPeCz4.S/gc/GVtMeTONXWShK15TKLyJye', 'Alex Nguyen',   'CUSTOMER'),
+('jamie@shuttleflow.com',         '$2a$10$2tjL5OyS8g/93gxTR4CEFOvcem92OIUbFFoWGqDSOfA6QudRPrRPG', 'Jamie Lee',     'CUSTOMER');
 
 INSERT INTO providers (user_id, name, type, location) VALUES
 (1, 'Court 3',   'COURT', 'ShuttleFlow Arena - Building A'),

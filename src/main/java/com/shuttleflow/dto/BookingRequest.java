@@ -1,10 +1,18 @@
-/*
- * M2 scaffold — no implementation yet.
- *
- * Function: immutable request shape for slot booking, containing slotId and
- * optional serviceId. Connection to M1: extends the existing JSON camelCase
- * DTO convention; authenticated user identity comes from the server session.
- *
- * M2 requirements addressed: validated customer booking input and prevention
- * of caller-supplied ownership identity.
- */
+package com.shuttleflow.dto;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public final class BookingRequest {
+    private final Long slotId;
+    private final Long serviceId;
+
+    @JsonCreator
+    public BookingRequest(@JsonProperty("slotId") Long slotId, @JsonProperty("serviceId") Long serviceId) {
+        this.slotId = slotId;
+        this.serviceId = serviceId;
+    }
+
+    public Long getSlotId() { return slotId; }
+    public Long getServiceId() { return serviceId; }
+}

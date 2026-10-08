@@ -2,6 +2,7 @@
 Endpoints:
 - POST /provider/slots
 - DELETE /provider/slots/{id}
+Status: implemented (2026-10-08)
 
 Request body for POST: `{ "serviceId": 1, "startTime": "2026-10-04T18:00:00", "endTime": "2026-10-04T19:00:00" }`
 

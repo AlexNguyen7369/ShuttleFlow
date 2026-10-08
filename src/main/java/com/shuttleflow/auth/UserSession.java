@@ -1,10 +1,27 @@
-/*
- * M2 scaffold — no implementation yet.
- *
- * Function: define the server-side authenticated identity: userId, role, and
- * optional providerId. Connection to M1: supplies identity to new services
- * without changing the existing public slot-browse contract.
- *
- * M2 requirements addressed: session authentication, role checks, and provider
- * ownership checks without storing plaintext passwords.
- */
+package com.shuttleflow.auth;
+
+/** Immutable identity stored in the server-side HTTP session. */
+public final class UserSession {
+
+    public static final String ATTRIBUTE = UserSession.class.getName();
+
+    private final long userId;
+    private final String email;
+    private final String fullName;
+    private final String role;
+    private final Long providerId;
+
+    public UserSession(long userId, String email, String fullName, String role, Long providerId) {
+        this.userId = userId;
+        this.email = email;
+        this.fullName = fullName;
+        this.role = role;
+        this.providerId = providerId;
+    }
+
+    public long getUserId() { return userId; }
+    public String getEmail() { return email; }
+    public String getFullName() { return fullName; }
+    public String getRole() { return role; }
+    public Long getProviderId() { return providerId; }
+}

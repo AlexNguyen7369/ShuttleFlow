@@ -1,10 +1,19 @@
-/*
- * M2 scaffold — no implementation yet.
- *
- * Function: immutable request shape for email/password login. Connection to
- * M1: follows the DTO boundary used by HomeDto and SlotDto and never echoes
- * credentials in a response.
- *
- * M2 requirements addressed: required credential validation and safe login
- * request binding.
- */
+package com.shuttleflow.dto;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+/** Login input. The password is never returned or stored in this DTO. */
+public final class LoginRequest {
+    private final String email;
+    private final String password;
+
+    @JsonCreator
+    public LoginRequest(@JsonProperty("email") String email, @JsonProperty("password") String password) {
+        this.email = email;
+        this.password = password;
+    }
+
+    public String getEmail() { return email; }
+    public String getPassword() { return password; }
+}

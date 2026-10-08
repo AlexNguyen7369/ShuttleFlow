@@ -1,5 +1,6 @@
 # Feature 5: Cancel my appointment
 Endpoint: DELETE /appointments/{id}
+Status: implemented (2026-10-08)
 
 ## Acceptance criteria
 - Owner cancels their own upcoming appointment → 204, slot becomes available again
