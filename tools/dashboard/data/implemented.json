@@ -56,7 +56,7 @@
   {
     "id": "TESTS",
     "title": "Added M2 authentication and security tests",
-    "detail": "Added endpoint tests for login, booking, cancellation, provider availability, provider appointments, invalid credentials, malformed requests, logout, and session creation, plus service, RBAC, and concurrent-booking tests. The full suite currently passes 40 tests.",
-    "date": "2026-10-07"
+    "detail": "Added endpoint tests for login, booking, cancellation, provider availability, provider appointments, invalid credentials, malformed requests, logout, and session creation, plus service, RBAC, and concurrent-booking tests. Codex's pass ended at 40 tests; the completion pass (M2-30) raised it to 78 passing on JDK 17 with the PostgreSQL race.",
+    "date": "2026-10-08"
   }
 ]

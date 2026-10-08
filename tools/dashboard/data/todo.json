@@ -18,7 +18,7 @@
   {
     "id": "M1-03",
     "title": "Complete Milestone 1 architecture and schema evidence",
-    "detail": "The layered controller \u2192 service \u2192 repository \u2192 database flow, ER/schema notes, and request/response path are documented for the read-only skeleton.",
+    "detail": "The layered controller → service → repository → database flow, ER/schema notes, and request/response path are documented for the read-only skeleton.",
     "status": "done",
     "source": "ShuttleFlow/README.md; ShuttleFlow/docs/schema-notes.md; ShuttleFlow/docs/decisions.md",
     "milestone": "M1"
@@ -232,5 +232,95 @@
     "status": "done",
     "source": "ShuttleFlow/Milestone2/CMPE172_Milestone2_Booking_and_Concurrency.pdf; ShuttleFlow/AGENTS.md",
     "milestone": "M2"
+  },
+  {
+    "id": "M2-24",
+    "title": "Ran the app on real PostgreSQL and fixed the generated-key bug",
+    "detail": "Created the local shuttleflow and shuttleflow_test databases and ran the API on PostgreSQL for the first time. Slot creation crashed there because PostgreSQL returns every column as a generated key; the repositories now request only slot_id / appointment_id.",
+    "status": "done",
+    "source": "src/main/java/com/shuttleflow/repository/ProviderRepository.java; AppointmentRepository.java",
+    "milestone": "M2",
+    "completed": "2026-10-08"
+  },
+  {
+    "id": "M2-25",
+    "title": "One portable schema with a UNIQUE active-booking key",
+    "detail": "Replaced the PostgreSQL partial index and the separate H2 test schema with one schema.sql: UNIQUE (active_slot_id) plus a CHECK tying it to BOOKED/CANCELLED. Tests now exercise the exact runtime DDL; cancelled history and rebooking still work.",
+    "status": "done",
+    "source": "src/main/resources/schema.sql; src/test/resources/application.properties",
+    "milestone": "M2",
+    "completed": "2026-10-08"
+  },
+  {
+    "id": "M2-26",
+    "title": "Always-future seed data and future-only browsing",
+    "detail": "Seed slots are relative to the boot day (portable interval SQL) instead of fixed September dates that had already passed. GET /slots and the home count now hide slots that have already started.",
+    "status": "done",
+    "source": "src/main/resources/seed.sql; src/main/java/com/shuttleflow/repository/SlotRepository.java",
+    "milestone": "M2",
+    "completed": "2026-10-08"
+  },
+  {
+    "id": "M2-27",
+    "title": "Safe slot removal when cancelled history exists",
+    "detail": "Removing a slot whose bookings were cancelled used to hit a foreign-key error and return 500. Now it is marked CANCELLED, which keeps the customer's history and still hides it from browsing. Never-booked slots are still deleted.",
+    "status": "done",
+    "source": "src/main/java/com/shuttleflow/service/ProviderService.java",
+    "milestone": "M2",
+    "completed": "2026-10-08"
+  },
+  {
+    "id": "M2-28",
+    "title": "Session hardening, explicit isolation, safer errors",
+    "detail": "Login now issues a brand-new session (session-fixation defense). Booking and cancellation declare READ COMMITTED explicitly; the no-retry decision is recorded. GET /appointments is customer-only. Unknown routes, wrong methods, and bad media types keep their 404/405/415 instead of 500, and lock timeouts become a retryable 409.",
+    "status": "done",
+    "source": "AuthService.java; AppointmentService.java; ApiExceptionHandler.java; docs/decisions.md",
+    "milestone": "M2",
+    "completed": "2026-10-08"
+  },
+  {
+    "id": "M2-29",
+    "title": "Frontend connected to the API and completed",
+    "detail": "Added CorsConfig so the :5173 client can call the API with its session cookie. Added GET /auth/session (sign-in survives a reload) and GET /provider/services (service picker). Rebuilt the client: booking confirmation dialog, role-aware navigation, provider slot list with Remove buttons across all pages, and formatted prices.",
+    "status": "done",
+    "source": "src/main/java/com/shuttleflow/config/CorsConfig.java; frontend/index.html; frontend/src/app.js",
+    "milestone": "M2",
+    "completed": "2026-10-08"
+  },
+  {
+    "id": "M2-30",
+    "title": "Expanded unit, integration, and PostgreSQL race tests",
+    "detail": "Added 12 Mockito service unit tests (including unique-constraint violation translated to 409), plus endpoint tests for every remaining 400/401/403/404/409 branch, auth/session/CORS tests, and date/service/future browse tests. Added an opt-in PostgreSQL race: 8 threads × 10 rounds with exactly one booking each time. Totals: 78 passed on JDK 17 + PostgreSQL; 68 passed + 1 skipped on JDK 27.",
+    "status": "done",
+    "source": "src/test/java/com/shuttleflow/",
+    "milestone": "M2",
+    "completed": "2026-10-08"
+  },
+  {
+    "id": "M2-31",
+    "title": "End-to-end verification on PostgreSQL and in a real browser",
+    "detail": "Ran a 37-request curl walkthrough of every route and error status against the live PostgreSQL app, and a headless-Chrome run of every customer and provider UI flow with no console errors. The reviewer agent returned PASS; its one finding was fixed.",
+    "status": "done",
+    "source": "Milestone2/m2-checklist.md",
+    "milestone": "M2",
+    "completed": "2026-10-08"
+  },
+  {
+    "id": "M2-32",
+    "title": "Docs, report, and walkthrough script brought up to date",
+    "detail": "Updated README (setup, endpoint table, concurrency, tests), decisions, schema notes, feature specs, CLAUDE.md and AGENTS.md. Rewrote the M2 report with the ACID, isolation, and retry analysis plus code snippets. Wrote video_script2.md for the walkthrough.",
+    "status": "done",
+    "source": "README.md; docs/; Milestone2/m2-report.md; video_script2.md",
+    "milestone": "M2",
+    "completed": "2026-10-08"
+  },
+  {
+    "id": "M2-33",
+    "title": "Milestone 2 abstract summary",
+    "detail": "ShuttleFlow M2 delivers a layered Spring Boot + JDBC booking system: browser → controllers → services (sessions, RBAC, validation, READ COMMITTED transactions) → parameterized repositories → PostgreSQL. Double-booking is prevented twice, by a SELECT ... FOR UPDATE slot lock and a UNIQUE (active_slot_id) backstop, both mapped to 409. The full change log and technical connections are in Milestone2/m2-summary.md.",
+    "status": "done",
+    "source": "Milestone2/m2-summary.md",
+    "milestone": "M2",
+    "completed": "2026-10-08"
   }
 ]

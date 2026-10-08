@@ -37,10 +37,6 @@ public class SlotService {
                 PAGE_SIZE, (long) (page - 1) * PAGE_SIZE);
     }
 
-    public List<SlotDto> getAvailableSlots(Long providerId, String sessionType, int page) {
-        return getAvailableSlots(providerId, sessionType, null, null, page);
-    }
-
     private String toProviderType(String sessionType) {
         if (sessionType == null) {
             return null;

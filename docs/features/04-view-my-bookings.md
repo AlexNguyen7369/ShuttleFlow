@@ -11,3 +11,5 @@ Status: implemented (2026-10-08)
 - No appointments → 200 with an empty list
 - Unknown `view` value → 400
 - Not logged in → 401
+- PROVIDER account → 403 (providers use `GET /provider/appointments`)
+- A past BOOKED appointment is shown in history with status `COMPLETED` (derived, not stored)

@@ -4,6 +4,7 @@ import com.shuttleflow.auth.SessionAuth;
 import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.dto.AvailabilityRequest;
 import com.shuttleflow.dto.ProviderAppointmentDto;
+import com.shuttleflow.dto.ServiceDto;
 import com.shuttleflow.dto.SlotDto;
 import com.shuttleflow.repository.AppointmentRepository;
 import com.shuttleflow.repository.ProviderRepository;
@@ -68,7 +69,18 @@ public class ProviderService {
         if (appointmentRepository.hasActiveAppointment(slotId)) {
             throw new ConflictException("Booked slots cannot be removed.");
         }
-        slotRepository.deleteSlot(slotId);
+        // Cancelled appointments still reference the slot, so keep it as CANCELLED history
+        // instead of deleting it; either way it no longer appears in GET /slots.
+        if (appointmentRepository.hasAnyAppointment(slotId)) {
+            slotRepository.updateStatus(slotId, "OPEN", "CANCELLED");
+        } else {
+            slotRepository.deleteSlot(slotId);
+        }
+    }
+
+    public List<ServiceDto> services(HttpSession session) {
+        UserSession user = sessionAuth.requireProvider(session);
+        return providerRepository.findServices(user.getProviderId());
     }
 
     public List<ProviderAppointmentDto> appointments(HttpSession session) {

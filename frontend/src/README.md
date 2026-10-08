@@ -1,5 +1,6 @@
-# Frontend source scaffold
+# Frontend source
 
-Planned areas: `api/` for HTTP calls, `components/` for reusable UI, and
-`pages/` for home/login/customer/provider screens. No executable frontend code
-has been added yet.
+- `app.js` — the whole client, grouped by screen: session, browse/filter/paginate,
+  booking + confirmation dialog, customer appointments, provider workspace.
+  Every action is a single `fetch` to the Spring Boot API with the session cookie.
+- `styles.css` — layout and theme for all screens.

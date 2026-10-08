@@ -9,8 +9,9 @@
 6. 2026-09-29 — Alex Nguyen — Merged CLAUDE.md, docs/, .claude/ agents and skill, and this log into the app repo and updated every path to the single-repo layout.
 7. 2026-10-07 — Codex — Started M2-07/M2-09: added safe global 400/401/403/404/409/500 error mapping, shared request validation, BCrypt login, provider login, server-side sessions, logout, and customer/provider session guards. Added 28 passing tests including authentication and RBAC-boundary coverage.
 8. 2026-10-08 — Codex — Completed the M2 booking, cancellation, provider availability, provider appointment, filtering, concurrency, frontend, documentation, dashboard history, and voice-script work. The regression suite passes 40 tests and `mvn clean package` succeeds.
+9. 2026-10-08 — Alex Nguyen — Completed Milestone 2 end to end: fixed PostgreSQL generated keys, stale seed dates, past-slot browsing, slot-removal 500, missing CORS, framework-error 500s and session fixation; unified the portable schema, finished the UI, raised the suite to 78 passing tests including an 8-thread PostgreSQL race, and updated docs, report, summary and dashboard history.
 
 ## What's next
-**Run the final pre-commit audit and regression gate, then commit and push the completed Milestone 2 implementation to `main` if the working tree and checklist are clean.**
+**Produce the Milestone 2 submission package: push `main`, export `Milestone2/m2-report.md` to PDF with UI screenshots, record the walkthrough from `video_script2.md`, and zip as `CMPE172_Milestone2_FirstName_LastName.zip` with the repo and video links.**
 
-**Why this is next:** all application and artifact checkpoints are implemented; only the final audit and explicit repository handoff remain.
+**Why this is next:** all code, tests, and documentation checkpoints are verified; the graded deliverables (report PDF, ≥5-minute video, zip) are the only remaining Milestone 2 requirements and Milestone 3 work builds on the submitted baseline.

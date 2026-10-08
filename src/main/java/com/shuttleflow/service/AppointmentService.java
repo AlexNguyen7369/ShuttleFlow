@@ -6,9 +6,9 @@ import com.shuttleflow.dto.AppointmentDto;
 import com.shuttleflow.dto.BookingRequest;
 import com.shuttleflow.repository.AppointmentRepository;
 import com.shuttleflow.repository.SlotRepository;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.servlet.http.HttpSession;
@@ -28,7 +28,17 @@ public class AppointmentService {
         this.sessionAuth = sessionAuth;
     }
 
-    @Transactional
+    /**
+     * Books one slot in a single READ COMMITTED transaction (atomic: appointment insert and slot
+     * status change commit or roll back together).
+     *
+     * Concurrency: {@code SELECT ... FOR UPDATE} makes a competing booking for the same slot wait
+     * until this transaction ends; it then re-reads the slot as BOOKED and gets a 409. The
+     * appointments_one_active_booking UNIQUE key is the database backstop if any path skips the
+     * lock, and its violation is translated to the same 409. No retry: the loser's outcome is
+     * final (the slot is taken), so retrying could never succeed.
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public AppointmentDto book(BookingRequest request, HttpSession session) {
         UserSession user = sessionAuth.requireCustomer(session);
         if (request == null || request.getSlotId() == null || request.getSlotId() < 1) {
@@ -63,7 +73,7 @@ public class AppointmentService {
     }
 
     public List<AppointmentDto> list(String view, HttpSession session) {
-        UserSession user = sessionAuth.requireAuthenticated(session);
+        UserSession user = sessionAuth.requireCustomer(session);
         String normalized = view == null || view.isBlank() ? "upcoming" : view;
         if (!normalized.equals("upcoming") && !normalized.equals("history")) {
             throw new InvalidRequestException("view must be upcoming or history.");
@@ -71,7 +81,8 @@ public class AppointmentService {
         return appointmentRepository.findCustomerAppointments(user.getUserId(), normalized.equals("history"));
     }
 
-    @Transactional
+    /** Cancels an owned upcoming appointment and reopens its slot in one transaction. */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void cancel(long appointmentId, HttpSession session) {
         UserSession user = sessionAuth.requireCustomer(session);
         if (appointmentId < 1) {
@@ -88,7 +99,9 @@ public class AppointmentService {
         if (appointment.startTime().isBefore(LocalDateTime.now())) {
             throw new ConflictException("Past appointments cannot be cancelled.");
         }
-        appointmentRepository.cancel(appointmentId);
+        if (appointmentRepository.cancel(appointmentId) != 1) {
+            throw new ConflictException("Appointment is already cancelled.");
+        }
         if (slotRepository.updateStatus(appointment.slotId(), "BOOKED", "OPEN") != 1) {
             throw new IllegalStateException("Appointment slot could not be reopened.");
         }

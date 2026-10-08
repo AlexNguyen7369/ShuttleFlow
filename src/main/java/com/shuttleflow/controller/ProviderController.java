@@ -2,6 +2,7 @@ package com.shuttleflow.controller;
 
 import com.shuttleflow.dto.AvailabilityRequest;
 import com.shuttleflow.dto.ProviderAppointmentDto;
+import com.shuttleflow.dto.ServiceDto;
 import com.shuttleflow.dto.SlotDto;
 import com.shuttleflow.service.ProviderService;
 import jakarta.servlet.http.HttpSession;
@@ -28,6 +29,11 @@ public class ProviderController {
     public ResponseEntity<Void> remove(@PathVariable long slotId, HttpSession session) {
         providerService.remove(slotId, session);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/services")
+    public List<ServiceDto> services(HttpSession session) {
+        return providerService.services(session);
     }
 
     @GetMapping("/appointments")

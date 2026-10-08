@@ -1,5 +1,5 @@
 target/
-data/
+/data/
 Milestone2/
 *.class
 .idea/
@@ -8,6 +8,7 @@ Milestone2/
 context.md
 definitions.md
 video_script.md
+video_script2.md
 
 # Claude Code local settings
 .claude/settings.local.json

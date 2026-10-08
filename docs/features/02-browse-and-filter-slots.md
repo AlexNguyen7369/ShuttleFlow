@@ -11,6 +11,6 @@ Endpoint: GET /slots?providerId={id}&sessionType={OPEN_PLAY|COACHING}&serviceId=
 - `sessionType` filter → only slots for that session type (open play vs coaching); mapped via `providers.type`: `OPEN_PLAY` = `COURT`, `COACHING` = `COACH` (decided 2026-09-29, no schema change)
 - `serviceId` and `date` filters can be combined with the existing filters; dates before today are rejected with `400`
 - Filters combine with each other and with pagination
-- Only slots with `status = 'OPEN'` are returned; BOOKED and CANCELLED slots never appear
+- Only slots with `status = 'OPEN'` that have not started yet are returned; BOOKED, CANCELLED, and past slots never appear
 - `page` < 1 or not a number, or unknown `sessionType` → 400
 - Response includes slotId, providerName, serviceName, startTime, endTime, price

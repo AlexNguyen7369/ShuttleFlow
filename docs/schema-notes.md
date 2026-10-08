@@ -11,10 +11,12 @@ implemented by a database uniqueness guard; application code should translate
 the resulting conflict rather than replace the constraint with a check-then-
 insert race.
 
-For Milestone 2, PostgreSQL uses a partial unique index on
-`appointments(slot_id)` for active `BOOKED` rows. The H2 test schema uses the
-portable `active_slot_id` key with a normal unique index because both allow
-cancelled history while allowing the released slot to be booked again.
+For Milestone 2, one `schema.sql` serves both PostgreSQL (runtime) and H2
+(tests). The double-booking guard is `UNIQUE (active_slot_id)` on
+`appointments`: `active_slot_id` equals `slot_id` while an appointment is
+`BOOKED` and is `NULL` once `CANCELLED` (enforced by the
+`appointments_active_slot_matches` CHECK). UNIQUE treats NULLs as distinct, so
+cancelled history is kept and the released slot can be booked again.
 
 ## Tables
 
@@ -41,7 +43,7 @@ Note: the PDF lists the slots table as `Available_Slots`; the actual table name 
 
 ## Double-booking guard
 
-The unique `active_slot_id` index on `appointments` is enforced by the
+The `UNIQUE (active_slot_id)` constraint on `appointments` is enforced by the
 database, not application code, so two simultaneous "Book" presses cannot
 both succeed. The service also locks the slot row with `SELECT ... FOR UPDATE`;
 the losing request returns **"Court is already booked."**
@@ -62,7 +64,7 @@ the losing request returns **"Court is already booked."**
 | `providers.location`, `services.price` defaults | `providers`, `services` |
 | `UNIQUE (provider_id, start_time)` — a provider cannot list two slots at the same start | `availability_slots` |
 | `status` CHECK: slots `OPEN`/`BOOKED`/`CANCELLED`; appointments `BOOKED`/`CANCELLED` (default `OPEN` / `BOOKED`) | `availability_slots`, `appointments` |
-| `active_slot_id` plus a unique index for one active `BOOKED` appointment per slot | `appointments` |
+| `active_slot_id` + `UNIQUE (active_slot_id)` + CHECK tying it to `BOOKED` — one active booking per slot | `appointments` |
 | `DROP TABLE IF EXISTS ... CASCADE` in FK-safe order at top of file (reset on every boot) | file header |
 
 Consequences to keep in mind:
@@ -75,7 +77,7 @@ Consequences to keep in mind:
 
 ## Seed data
 
-4 users (2 providers, 2 customers), 2 providers (Court 3, Coach Kim), 3 services (singles rental, doubles rental, private coaching), 5 open slots across 2026-09-27 to 2026-09-29.
+4 users (2 providers, 2 customers), 2 providers (Court 3, Coach Kim), 3 services (singles rental, doubles rental, private coaching), 7 open slots dated 1–5 days after the boot day (`CAST(CURRENT_DATE AS TIMESTAMP) + INTERVAL ...`), so demo data never goes stale.
 
 ## Not modelled yet
 
