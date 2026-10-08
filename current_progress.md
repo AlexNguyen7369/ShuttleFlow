@@ -11,8 +11,9 @@
 8. 2026-10-08 — Codex — Completed the M2 booking, cancellation, provider availability, provider appointment, filtering, concurrency, frontend, documentation, dashboard history, and voice-script work. The regression suite passes 40 tests and `mvn clean package` succeeds.
 9. 2026-10-08 — Alex Nguyen — Completed Milestone 2 end to end: fixed PostgreSQL generated keys, stale seed dates, past-slot browsing, slot-removal 500, missing CORS, framework-error 500s and session fixation; unified the portable schema, finished the UI, raised the suite to 78 passing tests including an 8-thread PostgreSQL race, and updated docs, report, summary and dashboard history.
 10. 2026-10-08 — Alex Nguyen — Fixed the dashboard's empty Implemented additions (stale server; now lists all M1 and M2 tasks with a stale-server warning) and added bug code snippets with the faulty lines highlighted in red, captured from the pre-fix commit.
+11. 2026-10-08 — Alex Nguyen — Removed the stale nested ShuttleFlow/ copy and organized the milestone files into Milestone1/ and Milestone2/ (assignment PDF, walkthrough and voice scripts), and pointed the dashboard at the root context.md.
 
 ## What's next
-**Produce the Milestone 2 submission package: export `Milestone2/m2-report.md` to PDF with UI screenshots, record the walkthrough from `video_script2.md`, and zip as `CMPE172_Milestone2_FirstName_LastName.zip` with the GitHub and video links.**
+**Produce the Milestone 2 submission package: export `Milestone2/m2-report.md` to PDF with UI screenshots, record the walkthrough from `Milestone2/video_script2.md`, and zip as `CMPE172_Milestone2_FirstName_LastName.zip` with the GitHub and video links.**
 
 **Why this is next:** the code, tests, docs, and dashboard are complete and pushed; the graded deliverables (report PDF, ≥5-minute video, zip) are the only remaining Milestone 2 requirements, and Milestone 3 builds on the submitted baseline.
