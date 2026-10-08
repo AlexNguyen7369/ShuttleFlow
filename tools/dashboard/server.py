@@ -47,9 +47,8 @@ def write_json(path, value):
 
 
 def context_path():
-    """Return the repository context file, including this repo's nested app root."""
-    nested = ROOT / "ShuttleFlow" / "context.md"
-    return nested if nested.exists() else ROOT / "context.md"
+    """Return the repository context file."""
+    return ROOT / "context.md"
 
 
 def sync_active_tasks(items):

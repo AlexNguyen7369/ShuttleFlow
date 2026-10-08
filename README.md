@@ -194,7 +194,8 @@ src/main/resources/
 src/test/                  unit, integration, and concurrency tests (H2 profile; optional PostgreSQL race)
 frontend/                  index.html + src/app.js + src/styles.css
 docs/                      decisions, schema notes, feature specs 01-08
-Milestone2/                assignment plan, checklist, evidence report, summary
+Milestone1/                M1 walkthrough script (gitignored)
+Milestone2/                assignment PDF, plan, checklist, evidence report, summary, walkthrough scripts
 tools/dashboard/           local project dashboard (python3 tools/dashboard/server.py)
 ```
 
