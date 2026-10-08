@@ -1,5 +1,6 @@
 # Feature 1: Player login
 Endpoint: POST /auth/login
+Status: implemented (2026-10-07)
 
 ## Acceptance criteria
 - Valid email and password for a CUSTOMER → 200, session/token returned

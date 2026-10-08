@@ -1,0 +1,62 @@
+[
+  {
+    "id": "M2-01",
+    "title": "Prepared the backend for Milestone 2",
+    "detail": "Added the planned authentication, appointment, provider, session, repository, service, controller, DTO, and error-handling locations so the booking work follows the project's controller-to-service-to-database structure.",
+    "date": "2026-10-07"
+  },
+  {
+    "id": "M2-02",
+    "title": "Added the first frontend entry point",
+    "detail": "Created the browser-facing frontend entry page and styling foundation for the future customer and provider booking screens.",
+    "date": "2026-10-07"
+  },
+  {
+    "id": "M2-03",
+    "title": "Reviewed the Milestone 2 requirements",
+    "detail": "Compared the booking and concurrency assignment requirements with the repository's feature contracts and recorded the implementation checklist.",
+    "date": "2026-10-07"
+  },
+  {
+    "id": "M2-04",
+    "title": "Recorded the booking and concurrency decisions",
+    "detail": "Documented the BOOKED and CANCELLED statuses, derived completed history, cancellation and rebooking behavior, PostgreSQL isolation level, and row-locking approach.",
+    "date": "2026-10-07"
+  },
+  {
+    "id": "M2-05",
+    "title": "Set PostgreSQL as the runtime database target",
+    "detail": "Configured PostgreSQL for normal application use while keeping an in-memory H2 profile for repeatable tests, with portable identity columns and booking constraints.",
+    "date": "2026-10-07"
+  },
+  {
+    "id": "M2-06",
+    "title": "Replaced seed passwords with BCrypt hashes",
+    "detail": "Added the password encoder, converted local fixture passwords to BCrypt hashes, and documented safe local-only test accounts.",
+    "date": "2026-10-07"
+  },
+  {
+    "id": "M2-07",
+    "title": "Added shared validation and safe error responses",
+    "detail": "Added consistent handling for malformed requests and safe 400, 401, 403, 404, 409, and 500 responses without exposing stack traces or database details. Route-specific validation will continue as booking routes are added.",
+    "date": "2026-10-07"
+  },
+  {
+    "id": "M2-08",
+    "title": "Added customer and provider login",
+    "detail": "Added customer login, provider-only login, logout, BCrypt password checks, generic invalid-login messages, and safe login responses that never include passwords.",
+    "date": "2026-10-07"
+  },
+  {
+    "id": "M2-09",
+    "title": "Added server-side sessions and role checks",
+    "detail": "Added session-backed user identity plus reusable customer and provider permission checks that return 401 when nobody is signed in and 403 for the wrong role. These checks are ready to be wired into the booking and provider routes.",
+    "date": "2026-10-07"
+  },
+  {
+    "id": "TESTS",
+    "title": "Added M2 authentication and security tests",
+    "detail": "Added endpoint tests for login, booking, cancellation, provider availability, provider appointments, invalid credentials, malformed requests, logout, and session creation, plus service, RBAC, and concurrent-booking tests. The full suite currently passes 40 tests.",
+    "date": "2026-10-07"
+  }
+]

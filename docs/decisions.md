@@ -18,7 +18,7 @@ Source: `docs/CMPE 172 Milestone 1.pdf`, plus what is currently implemented in `
 ## Stack
 
 - Java, Spring Boot, SQL via **JDBC — no ORM**.
-- PostgreSQL is the target database named in the spec. The current read-only skeleton still runs on H2 until the PostgreSQL configuration/migration is implemented.
+- PostgreSQL is the runtime target named in the spec. H2 is test-only infrastructure configured under `src/test/resources/application.properties`.
 - Framing from the spec: Spring Boot in place of J2EE, REST in place of CORBA/distributed objects.
 
 ## Core features (full project scope)
@@ -43,14 +43,14 @@ Milestone 1 itself is only the design + a read-only skeleton (`GET /`, `GET /slo
 |---|---|---|
 | Data access | Raw SQL through `JdbcTemplate` | Spec forbids an ORM |
 | Layering | `@RestController` → `@Service` → `@Repository` → DTO | Front-controller pattern via Spring's `DispatcherServlet`; keeps HTTP, rules and SQL separate |
-| Double-booking prevention | `UNIQUE (slot_id)` on `appointments`, enforced by the database | Holds even if two requests race; the service layer catches the constraint violation and returns "Court is already booked." |
+| Double-booking prevention | Pessimistic slot lock plus a unique active-slot database key | The service locks the slot inside the booking transaction; `active_slot_id` remains a database backstop and permits cancelled history/rebooking. |
 | Pagination | SQL `LIMIT`/`OFFSET`, page size 10 | Spec requirement |
 | Provider modelling | A provider is a user with at most one provider row (`providers.user_id`) | Spec: "each user is at most one provider" |
 | Weak entities | None | Every entity has its own ID, so all are strong even when existence depends on another entity |
 
 ## Open items / discrepancies to resolve
 
-1. **PostgreSQL vs H2.** **Resolved 2026-10-07:** PostgreSQL is the M2/project target; H2 is transitional local/test infrastructure until runtime migration is implemented.
+1. **PostgreSQL vs H2.** **Resolved 2026-10-07:** PostgreSQL is the runtime/project target; H2 is test-only infrastructure.
 2. **Spec typo in constraints.** The PDF's Justification says `CHECK start_time > end_time`; the relational schema table and `schema.sql` correctly use `end_time > start_time`. Treat the latter as correct.
 3. **Spec typo in the double-booking paragraph.** "enforced now through java, but through the database" almost certainly means *not* through Java, but through the database. The implementation follows that reading.
 4. **Role naming.** The roles table says "Admin" for coach/court manager, but the schema stores `PROVIDER`. Keep `PROVIDER` in the DB.
@@ -59,7 +59,7 @@ Milestone 1 itself is only the design + a read-only skeleton (`GET /`, `GET /slo
 
 ## Resolved decisions — 2026-10-07
 
-1. **Milestone 1 relational schema contract:** Treat the relational-schema table and the implemented `schema.sql` as authoritative. The PDF's `CHECK start_time > end_time` is a typo; the valid rule is `end_time > start_time`. The PDF's double-booking wording is also interpreted as requiring the database-level `UNIQUE (slot_id)` constraint, with the service translating conflicts into a safe response. Keep `PROVIDER` as the stored role name even though the narrative calls providers "Admin".
+1. **Milestone 1 relational schema contract:** Treat the relational-schema table and the implemented `schema.sql` as authoritative. The PDF's `CHECK start_time > end_time` is a typo; the valid rule is `end_time > start_time`. Keep `PROVIDER` as the stored role name even though the narrative calls providers "Admin".
 2. **Database target:** Use PostgreSQL for the project target and eventual deployment. H2 remains the current local skeleton database only until the PostgreSQL driver, configuration, and test profile are added.
 3. **Appointment terminology:** Use `BOOKED` for an active appointment and `CANCELLED` for a cancelled appointment. Do not use `CONFIRMED` in the M2 schema or API.
 4. **Concurrency mechanism:** Use PostgreSQL pessimistic row locking with `SELECT ... FOR UPDATE` inside the booking transaction. Keep the database uniqueness backstop as an additional safety net.
@@ -74,11 +74,10 @@ Milestone 1 itself is only the design + a read-only skeleton (`GET /`, `GET /slo
    serialization failures and retry complexity for this single-row reservation
    flow.
 2. **Cancellation and rebooking: preserve history and allow rebooking.** Mark
-   the appointment `CANCELLED`, return the slot to `OPEN`, and enforce one
-   active booking with a PostgreSQL partial unique index on `slot_id` where
-   `status = 'BOOKED'`. This preserves customer history while preventing two
-   active bookings. The M2 schema notes must explicitly document this as the
-   PostgreSQL evolution of the M1 `UNIQUE (slot_id)` backstop.
+   the appointment `CANCELLED`, clear its `active_slot_id`, return the slot to
+   `OPEN`, and enforce one active booking with a PostgreSQL partial unique
+   index on `slot_id` and an H2-compatible unique active-slot key. This preserves customer
+   history while preventing two active bookings.
 3. **Completed appointments: derive `COMPLETED`.** Keep the stored status as
    `BOOKED` or `CANCELLED`; present a booked appointment whose start time is in
    the past as `COMPLETED` in history queries. This avoids a scheduler and

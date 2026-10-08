@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.time.LocalDate;
 
 @RestController
 public class SlotController {
@@ -20,7 +21,9 @@ public class SlotController {
     @GetMapping("/slots")
     public List<SlotDto> slots(@RequestParam(required = false) Long providerId,
                                @RequestParam(required = false) String sessionType,
+                               @RequestParam(required = false) Long serviceId,
+                               @RequestParam(required = false) LocalDate date,
                                @RequestParam(defaultValue = "1") int page) {
-        return slotService.getAvailableSlots(providerId, sessionType, page);
+        return slotService.getAvailableSlots(providerId, sessionType, serviceId, date, page);
     }
 }

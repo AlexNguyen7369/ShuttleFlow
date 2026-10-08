@@ -19,4 +19,22 @@ the project's `context.md` automatically.
 
 API endpoints include `/api/meta`, `/api/gate`, `/api/team`, `/api/agents`,
 `/api/analytics`, `/api/changes`, `/api/history`, `/api/needtoknow`,
-`/api/todo`, and `/api/tests`.
+`/api/todo`, `/api/implemented`, `/api/bugs`, `/api/context`, and `/api/tests`.
+
+The Changes & history tab keeps a plain-English baseline in
+`data/implemented.json` and automatically appends completed M2 tasks from
+`data/todo.json`. Future M2 tasks appear there after their board status becomes
+`done`, without another dashboard code change.
+
+The Context tab is generated from the current filesystem and project board on
+each refresh. It provides an expandable structure tree, an interactive layer
+diagram, live stack/connection explanations, and projected unfinished work
+from the Milestone requirements and feature-spec backlog.
+
+## Bug tracking
+
+The Bugs tab reads `tools/dashboard/data/bugs.json`. Subagents can record a
+discovered bug with `POST /api/bugs` and an `add` action containing these
+required fields: `name`, `source`, `details`, `solution`, `subagent`, and
+`discovered_at`. The dashboard does not infer or invent bugs from source-code
+markers; only explicitly recorded subagent findings appear in this tab.

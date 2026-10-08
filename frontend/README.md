@@ -1,12 +1,12 @@
-# Frontend scaffold — Milestone 2
+# ShuttleFlow frontend — Milestone 2
 
-The initial frontend entry point is `index.html`. It provides a deliberately
-small, static landing page while the Milestone 2 web interface is being
-implemented.
+The dependency-free frontend is `index.html` plus `src/app.js` and
+`src/styles.css`. It is intentionally static so it can be served with any
+simple web server while the Spring Boot API runs on port 8080.
 
-The directory is reserved for the future home, login, slot
-browsing/filtering, booking, confirmation, customer appointments/cancellation,
-and provider workflows.
+It provides home, login, slot browsing/filtering, booking, booking confirmation
+through the appointments view, customer cancellation, provider availability,
+and provider appointment views.
 
 The UI must call the existing/new REST controllers and preserve the flow:
 
@@ -14,5 +14,5 @@ The UI must call the existing/new REST controllers and preserve the flow:
 UI → Controller → Service → Repository → Database → DTO response → UI
 ```
 
-This solves the M2 usable-web-interface requirement while leaving the M1
-backend behavior intact until a frontend technology is selected.
+Start it locally with `python3 -m http.server 5173 --directory frontend`.
+The app sends same-session requests with `credentials: include` to the API.

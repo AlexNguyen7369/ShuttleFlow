@@ -7,13 +7,14 @@ Source: relational schema and justification pages of `docs/CMPE 172 Milestone 1.
 The relational-schema table and `schema.sql` are the authoritative Milestone 1
 contract. The PDF's reversed time check is treated as a typo: a slot must have
 `end_time > start_time`. Double-booking protection is a database concern,
-implemented by `UNIQUE (slot_id)` on `appointments`; application code should
-translate the resulting conflict rather than replace the constraint with a
-check-then-insert race.
+implemented by a database uniqueness guard; application code should translate
+the resulting conflict rather than replace the constraint with a check-then-
+insert race.
 
-For Milestone 2, PostgreSQL will evolve this guard to a partial unique index on
-`appointments(slot_id)` for `status = 'BOOKED'`. This preserves cancelled
-appointment history while allowing the released slot to be booked again.
+For Milestone 2, PostgreSQL uses a partial unique index on
+`appointments(slot_id)` for active `BOOKED` rows. The H2 test schema uses the
+portable `active_slot_id` key with a normal unique index because both allow
+cancelled history while allowing the released slot to be booked again.
 
 ## Tables
 
@@ -23,7 +24,7 @@ appointment history while allowing the released slot to be booked again.
 | `providers` | `provider_id`, `user_id`, `name`, `type`, `location` | PK `provider_id`; FK `user_id` → `users`; `type` IN (`COURT`, `COACH`) |
 | `services` | `service_id`, `provider_id`, `name`, `duration_min`, `price` | PK `service_id`; FK `provider_id` → `providers`; `duration_min > 0` |
 | `availability_slots` | `slot_id`, `provider_id`, `service_id`, `start_time`, `end_time`, `status` | PK `slot_id`; FKs → `providers`, `services`; `end_time > start_time` |
-| `appointments` | `appointment_id`, `user_id`, `slot_id`, `status`, `booked_at` | PK `appointment_id`; FKs → `availability_slots`, `users`; **UNIQUE (`slot_id`)** |
+| `appointments` | `appointment_id`, `user_id`, `slot_id`, `active_slot_id`, `status`, `booked_at` | PK `appointment_id`; FKs → `availability_slots`, `users`; one unique active-slot key |
 
 Note: the PDF lists the slots table as `Available_Slots`; the actual table name is `availability_slots` (matches the Main Entities list).
 
@@ -40,7 +41,10 @@ Note: the PDF lists the slots table as `Available_Slots`; the actual table name 
 
 ## Double-booking guard
 
-`UNIQUE (slot_id)` on `appointments`. Enforced by the database, not application code, so two simultaneous "Book" presses cannot both succeed: the second insert fails on the unique constraint and the service layer catches it and returns **"Court is already booked."**
+The unique `active_slot_id` index on `appointments` is enforced by the
+database, not application code, so two simultaneous "Book" presses cannot
+both succeed. The service also locks the slot row with `SELECT ... FOR UPDATE`;
+the losing request returns **"Court is already booked."**
 
 ## Justification points (from the PDF)
 
@@ -57,14 +61,17 @@ Note: the PDF lists the slots table as `Available_Slots`; the actual table name 
 | `services.max_players INT NOT NULL DEFAULT 1` | `services` |
 | `providers.location`, `services.price` defaults | `providers`, `services` |
 | `UNIQUE (provider_id, start_time)` — a provider cannot list two slots at the same start | `availability_slots` |
-| `status` CHECK: slots `OPEN`/`BOOKED`/`CANCELLED`; appointments `CONFIRMED`/`CANCELLED` (default `OPEN` / `CONFIRMED`) | `availability_slots`, `appointments` |
-| `DROP TABLE IF EXISTS` in FK-safe order at top of file (reset on every boot) | file header |
+| `status` CHECK: slots `OPEN`/`BOOKED`/`CANCELLED`; appointments `BOOKED`/`CANCELLED` (default `OPEN` / `BOOKED`) | `availability_slots`, `appointments` |
+| `active_slot_id` plus a unique index for one active `BOOKED` appointment per slot | `appointments` |
+| `DROP TABLE IF EXISTS ... CASCADE` in FK-safe order at top of file (reset on every boot) | file header |
 
 Consequences to keep in mind:
 
 - Slot status and appointment existence can disagree (a `BOOKED` slot with no appointment). Booking must set both in one transaction.
-- Cancelling an appointment leaves the `UNIQUE (slot_id)` row in place (`status = 'CANCELLED'`), so the same slot **cannot be re-booked** unless the row is deleted or the slot is re-created. Decide the cancel semantics in Milestone 2.
-- `password_hash` values in `seed.sql` are placeholders, not real hashes.
+- Cancelling an appointment preserves the row as history (`status = 'CANCELLED'`), clears `active_slot_id`, and releases the slot; the unique active-slot index permits one new `BOOKED` appointment.
+- `password_hash` values in `seed.sql` are BCrypt hashes. The local-only test
+  accounts and passwords are documented in the README; real credentials must
+  be provided through environment variables and must never be committed.
 
 ## Seed data
 

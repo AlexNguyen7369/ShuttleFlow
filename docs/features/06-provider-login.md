@@ -1,5 +1,6 @@
 # Feature 6: Coach / court manager login
 Endpoint: POST /auth/provider/login
+Status: implemented (2026-10-07)
 
 ## Acceptance criteria
 - Valid email and password for a PROVIDER → 200, session/token returned with `role = PROVIDER` and `providerId`
