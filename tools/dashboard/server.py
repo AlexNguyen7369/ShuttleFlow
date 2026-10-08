@@ -138,23 +138,55 @@ def history():
     return [{"sha": p[0], "author": p[1], "date": p[2], "subject": p[3]} for line in out.splitlines() if len(p := line.split("\t", 3)) == 4]
 
 
+TASK_ID = re.compile(r"^M(\d+)-(\d+)$")
+
+
+def history_order(item):
+    """Milestone order (M1 before M2), then task number; non-task entries such as TESTS go last."""
+    match = TASK_ID.match(str(item.get("id", "")))
+    return (int(match.group(1)), int(match.group(2))) if match else (99, 0)
+
+
 def implemented_additions():
-    """Return the written M2 history plus newly completed M2 board tasks."""
-    written = read_board("implemented.json", [])
-    known_ids = {str(item.get("id", "")) for item in written}
-    dynamic = []
+    """Every completed milestone task. A hand-written implemented.json entry wins over its board copy."""
+    items = {str(item.get("id", "")): item for item in read_board("implemented.json", [])}
     for item in read_board("todo.json", []):
         item_id = str(item.get("id", ""))
-        if item.get("status") != "done" or not item_id.startswith("M2-") or item_id in known_ids:
+        if item.get("status") != "done" or not TASK_ID.match(item_id) or item_id in items:
             continue
-        dynamic.append({
+        items[item_id] = {
             "id": item_id,
-            "title": item.get("title", "Completed M2 task"),
+            "title": item.get("title", "Completed task"),
             "detail": item.get("detail", ""),
             "date": str(item.get("completed") or item.get("started") or "")[:10],
             "source": "dashboard task board"
-        })
-    return written + dynamic
+        }
+    return sorted(items.values(), key=history_order)
+
+
+def source_lines(rel, ref=None):
+    """Lines of a repo file, from the working tree or from a git revision (for code that has since been fixed)."""
+    if ref:
+        try:
+            shown = subprocess.run(["git", "show", f"{ref}:{rel}"], cwd=ROOT, text=True, capture_output=True, timeout=5)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return shown.stdout.splitlines() if shown.returncode == 0 else None
+    path = (ROOT / rel).resolve()
+    if ROOT.resolve() not in path.parents or not path.is_file():
+        return None
+    return path.read_text(encoding="utf-8", errors="replace").splitlines()
+
+
+def bug_snippet(rel, highlight, ref=None, context=3):
+    """Capture the code around a bug: highlight is a list of [start, end] line ranges (1-based, inclusive)."""
+    lines = source_lines(rel, ref)
+    ranges = [[int(r[0]), int(r[-1])] for r in highlight or [] if r]
+    if not lines or not ranges or any(not 1 <= lo <= hi <= len(lines) for lo, hi in ranges):
+        return None
+    start = max(1, min(lo for lo, _ in ranges) - context)
+    stop = min(len(lines), max(hi for _, hi in ranges) + context)
+    return {"file": rel, "ref": ref, "from": start, "lines": lines[start - 1:stop], "highlight": ranges}
 
 
 def branches():
@@ -288,7 +320,7 @@ def project_context():
 
 def payload(route):
     project = detect_project()
-    if route == "/api/meta": return {"project": project, "dashboard": "project-dashboard", "features": ["team", "needs_you", "agents", "analytics", "changes", "history", "todo", "bugs", "context", "tests"], "port": PORT}
+    if route == "/api/meta": return {"project": project, "dashboard": "project-dashboard", "features": ["team", "needs_you", "agents", "analytics", "changes", "history", "implemented", "todo", "bugs", "bug_snippets", "context", "tests"], "port": PORT}
     if route == "/api/gate": return gate()
     if route == "/api/team": return {"branch": current_branch(), "branches": branches()}
     if route == "/api/changes": return {"status": status(), "files": changes()}
@@ -337,6 +369,16 @@ class Handler(BaseHTTPRequestHandler):
                     if missing: self.send_json({"error": f"missing bug fields: {', '.join(missing)}"}, 400); return
                     item = {field: str(body[field]).strip() for field in required}
                     item["id"] = f"BUG-{len(items) + 1:03d}"
+                    # Optional code location: {"file", "line", "endLine"} or "highlight": [[a, b], ...], plus an
+                    # optional git "ref" when the buggy code is no longer in the working tree.
+                    if body.get("file"):
+                        highlight = body.get("highlight") or [[body.get("line"), body.get("endLine") or body.get("line")]]
+                        try:
+                            snippet = bug_snippet(str(body["file"]), highlight, body.get("ref"))
+                        except (TypeError, ValueError):
+                            snippet = None
+                        if snippet is None: self.send_json({"error": "file/line range could not be read"}, 400); return
+                        item["snippet"] = snippet
                 else:
                     item = {**body, "id": next_task_id(items, body.get("milestone", "M2")), "milestone": body.get("milestone", "M2"), "created": iso()}
                 items.append(item)

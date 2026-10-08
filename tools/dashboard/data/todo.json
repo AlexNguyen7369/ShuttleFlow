@@ -5,7 +5,8 @@
     "detail": "PostgreSQL is the project target; H2 remains transitional local/test infrastructure until the runtime migration is implemented.",
     "status": "done",
     "source": "ShuttleFlow/docs/decisions.md; ShuttleFlow/README.md",
-    "milestone": "M1"
+    "milestone": "M1",
+    "completed": "2026-10-07"
   },
   {
     "id": "M1-02",
@@ -13,7 +14,8 @@
     "detail": "The implemented schema and relational-schema table are authoritative; PDF time-check and double-booking wording inconsistencies are documented as resolved interpretations.",
     "status": "done",
     "source": "ShuttleFlow/docs/schema-notes.md; ShuttleFlow/src/main/resources/schema.sql",
-    "milestone": "M1"
+    "milestone": "M1",
+    "completed": "2026-10-07"
   },
   {
     "id": "M1-03",
@@ -37,7 +39,8 @@
     "detail": "GET / returns the app name and current open-slot count through the layered Spring Boot flow.",
     "status": "done",
     "source": "ShuttleFlow/README.md",
-    "milestone": "M1"
+    "milestone": "M1",
+    "completed": "2026-09-24"
   },
   {
     "id": "M1-06",
@@ -45,7 +48,26 @@
     "detail": "GET /slots supports provider/session filters and 10-per-page SQL LIMIT/OFFSET pagination with validation.",
     "status": "done",
     "source": "ShuttleFlow/docs/features/02-browse-and-filter-slots.md; current_progress.md",
-    "milestone": "M1"
+    "milestone": "M1",
+    "completed": "2026-09-29"
+  },
+  {
+    "id": "M1-07",
+    "title": "Milestone 1 schema, seed data, and layered skeleton",
+    "detail": "Created the Spring Boot skeleton with controller → service → repository → DTO layers, the five spec tables (users, providers, services, availability_slots, appointments) with their constraints, and sample providers, services, and slots.",
+    "status": "done",
+    "source": "commit 5ec59e6; src/main/resources/schema.sql; seed.sql",
+    "milestone": "M1",
+    "completed": "2026-09-24"
+  },
+  {
+    "id": "M1-08",
+    "title": "Project rules, docs, and Claude workflow",
+    "detail": "Added CLAUDE.md (stack, hard rules, conventions), decisions.md and schema-notes.md distilled from the Milestone 1 PDF, the add-endpoint skill, reviewer and test-writer agents, feature specs 01-08, and the progress log.",
+    "status": "done",
+    "source": "commits cb08358, e289ce5; current_progress.md",
+    "milestone": "M1",
+    "completed": "2026-09-28"
   },
   {
     "id": "M2-01",
