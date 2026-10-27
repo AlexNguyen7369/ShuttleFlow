@@ -28,7 +28,7 @@ class MetricsControllerTest {
 
     @Test
     void bookingAndConflictAreCounted() throws Exception {
-        LocalDateTime start = LocalDateTime.now().plusDays(4);
+        LocalDateTime start = LocalDateTime.now().plusDays(4).withNano(0);
         jdbc.update("INSERT INTO availability_slots (provider_id, service_id, start_time, end_time, status)"
                 + " VALUES (1, 1, ?, ?, 'OPEN')", start, start.plusHours(1));
         long slotId = jdbc.queryForObject("SELECT slot_id FROM availability_slots WHERE provider_id = 1 AND start_time = ?",
