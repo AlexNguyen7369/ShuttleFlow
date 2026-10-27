@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="860" viewBox="0 0 1500 860" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b42318"/>
+    </marker>
+  </defs>
+  <rect width="1500" height="860" fill="#ffffff"/>
+
+  <text x="750" y="40" text-anchor="middle" font-size="26" font-weight="bold" fill="#111">ShuttleFlow — Distribution Boundary (Milestone 3)</text>
+
+  <!-- Client -->
+  <rect x="30" y="110" width="170" height="110" rx="10" fill="#eef4ff" stroke="#3b5bdb" stroke-width="2"/>
+  <text x="115" y="150" text-anchor="middle" font-size="18" font-weight="bold">Client</text>
+  <text x="115" y="175" text-anchor="middle" font-size="14">Browser / frontend</text>
+  <text x="115" y="197" text-anchor="middle" font-size="14">(session cookie)</text>
+
+  <!-- Scheduler app -->
+  <rect x="250" y="70" width="820" height="700" rx="14" fill="#f8f9fa" stroke="#495057" stroke-width="2"/>
+  <text x="660" y="100" text-anchor="middle" font-size="20" font-weight="bold">Appointment Scheduler (Spring Boot app)</text>
+
+  <rect x="280" y="125" width="220" height="80" rx="8" fill="#fff" stroke="#495057"/>
+  <text x="390" y="158" text-anchor="middle" font-size="16" font-weight="bold">AppointmentController</text>
+  <text x="390" y="182" text-anchor="middle" font-size="13">POST / DELETE /appointments</text>
+
+  <rect x="560" y="115" width="480" height="250" rx="8" fill="#fff" stroke="#2b8a3e" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="800" y="140" text-anchor="middle" font-size="15" font-weight="bold" fill="#2b8a3e">ONE DATABASE TRANSACTION (@Transactional)</text>
+  <rect x="580" y="155" width="440" height="60" rx="6" fill="#ebfbee" stroke="#2b8a3e"/>
+  <text x="800" y="180" text-anchor="middle" font-size="15" font-weight="bold">AppointmentService.book() / cancel()</text>
+  <text x="800" y="200" text-anchor="middle" font-size="13">SELECT … FOR UPDATE on the slot, rules, RBAC</text>
+  <rect x="580" y="228" width="210" height="58" rx="6" fill="#fff" stroke="#2b8a3e"/>
+  <text x="685" y="252" text-anchor="middle" font-size="13">appointments +</text>
+  <text x="685" y="272" text-anchor="middle" font-size="13">availability_slots writes</text>
+  <rect x="810" y="228" width="210" height="58" rx="6" fill="#fff4e6" stroke="#e8590c" stroke-width="2"/>
+  <text x="915" y="252" text-anchor="middle" font-size="13" font-weight="bold">Outbox row INSERT</text>
+  <text x="915" y="272" text-anchor="middle" font-size="13">notifications: PENDING</text>
+  <text x="800" y="315" text-anchor="middle" font-size="13">publish NotificationQueuedEvent(id)</text>
+  <text x="800" y="345" text-anchor="middle" font-size="13" fill="#555">rollback ⇒ no booking, no outbox row, no event</text>
+
+  <!-- commit point -->
+  <line x1="560" y1="390" x2="1040" y2="390" stroke="#c92a2a" stroke-width="3"/>
+  <text x="800" y="412" text-anchor="middle" font-size="16" font-weight="bold" fill="#c92a2a">COMMIT POINT — slot lock released; 201/204 returned to client</text>
+
+  <rect x="580" y="440" width="220" height="85" rx="8" fill="#fff" stroke="#495057"/>
+  <text x="690" y="468" text-anchor="middle" font-size="14" font-weight="bold">After-commit listener</text>
+  <text x="690" y="490" text-anchor="middle" font-size="12">@Async @TransactionalEventListener</text>
+  <text x="690" y="510" text-anchor="middle" font-size="12">(AFTER_COMMIT) — fast path</text>
+
+  <rect x="820" y="440" width="220" height="85" rx="8" fill="#fff" stroke="#495057"/>
+  <text x="930" y="468" text-anchor="middle" font-size="14" font-weight="bold">Outbox poller</text>
+  <text x="930" y="490" text-anchor="middle" font-size="12">@Scheduled every 30s — backstop</text>
+  <text x="930" y="510" text-anchor="middle" font-size="12">PENDING rows older than 60s</text>
+
+  <rect x="580" y="565" width="460" height="175" rx="8" fill="#fff" stroke="#1971c2" stroke-width="2"/>
+  <text x="810" y="592" text-anchor="middle" font-size="16" font-weight="bold" fill="#1971c2">NotificationGateway.send(NotificationRequest)</text>
+  <text x="600" y="620" font-size="13">• Timeouts: connect 1s, read 2s</text>
+  <text x="600" y="642" font-size="13">• Retry: up to 3 attempts, 200ms → 400ms backoff,</text>
+  <text x="615" y="660" font-size="13">only on timeout, refused connection, 5xx</text>
+  <text x="600" y="682" font-size="13">• 4xx: never retried → row FAILED (dead letter)</text>
+  <text x="600" y="704" font-size="13">• Gave up → row stays PENDING for the poller;</text>
+  <text x="615" y="722" font-size="13">FAILED after 5 rounds. Never throws into booking.</text>
+
+  <!-- DB -->
+  <rect x="280" y="440" width="230" height="300" rx="10" fill="#fff9db" stroke="#e67700" stroke-width="2"/>
+  <text x="395" y="470" text-anchor="middle" font-size="17" font-weight="bold">PostgreSQL</text>
+  <text x="395" y="500" text-anchor="middle" font-size="13">users, providers, services,</text>
+  <text x="395" y="520" text-anchor="middle" font-size="13">availability_slots,</text>
+  <text x="395" y="540" text-anchor="middle" font-size="13">appointments</text>
+  <text x="395" y="575" text-anchor="middle" font-size="13" font-weight="bold" fill="#e8590c">notifications (outbox)</text>
+  <text x="395" y="597" text-anchor="middle" font-size="12">PENDING / SENT / FAILED</text>
+  <text x="395" y="617" text-anchor="middle" font-size="12">UNIQUE idempotency_key</text>
+  <text x="395" y="660" text-anchor="middle" font-size="12" fill="#555">GET /health runs SELECT 1</text>
+  <text x="395" y="680" text-anchor="middle" font-size="12" fill="#555">→ 200 UP / 503 DOWN</text>
+  <text x="395" y="710" text-anchor="middle" font-size="12" fill="#555">GET /metrics: counters</text>
+
+  <!-- Notification service -->
+  <rect x="1160" y="540" width="310" height="225" rx="12" fill="#f3f0ff" stroke="#6741d9" stroke-width="2"/>
+  <text x="1315" y="575" text-anchor="middle" font-size="18" font-weight="bold">Notification Service</text>
+  <text x="1315" y="600" text-anchor="middle" font-size="14">POST /mock-notifications</text>
+  <text x="1180" y="635" font-size="13">• Stores each idempotencyKey once</text>
+  <text x="1180" y="657" font-size="13">• New key → 202, repeat key → 200</text>
+  <text x="1195" y="677" font-size="13">(resend after a lost reply is harmless)</text>
+  <text x="1180" y="699" font-size="13">• Blank fields → 400</text>
+  <text x="1180" y="730" font-size="12" fill="#555">Replaceable by Slack / Discord / email</text>
+  <text x="1180" y="748" font-size="12" fill="#555">behind the same DTO contract</text>
+
+  <!-- arrows -->
+  <line x1="200" y1="165" x2="276" y2="165" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="500" y1="165" x2="576" y2="185" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="575" y1="300" x2="470" y2="436" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="455" y="330" text-anchor="end" font-size="12" fill="#555">all writes commit</text>
+  <text x="455" y="346" text-anchor="end" font-size="12" fill="#555">or roll back together</text>
+  <line x1="690" y1="395" x2="690" y2="436" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="690" y1="525" x2="740" y2="561" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="930" y1="525" x2="880" y2="561" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- boundary call -->
+  <line x1="1040" y1="650" x2="1156" y2="650" stroke="#b42318" stroke-width="3" marker-end="url(#arrowRed)"/>
+  <line x1="1100" y1="80" x2="1100" y2="820" stroke="#b42318" stroke-width="2" stroke-dasharray="10 6"/>
+  <text x="1110" y="110" font-size="14" font-weight="bold" fill="#b42318">DISTRIBUTION BOUNDARY</text>
+  <text x="1110" y="130" font-size="13" fill="#b42318">(HTTP, separate service)</text>
+  <rect x="1115" y="300" width="360" height="190" rx="8" fill="#fff5f5" stroke="#b42318"/>
+  <text x="1295" y="326" text-anchor="middle" font-size="14" font-weight="bold" fill="#b42318">One coarse-grained call per event</text>
+  <text x="1130" y="352" font-size="12" font-family="Menlo, monospace">POST /mock-notifications</text>
+  <text x="1130" y="374" font-size="12" font-family="Menlo, monospace">{ "recipient": "alex@…",</text>
+  <text x="1130" y="392" font-size="12" font-family="Menlo, monospace">  "type": "BOOKING_CONFIRMED",</text>
+  <text x="1130" y="410" font-size="12" font-family="Menlo, monospace">  "message": "Your Singles at …",</text>
+  <text x="1130" y="428" font-size="12" font-family="Menlo, monospace">  "idempotencyKey": "BOOKED:57",</text>
+  <text x="1130" y="446" font-size="12" font-family="Menlo, monospace">  "appointmentId": 57 }</text>
+  <text x="1130" y="474" font-size="12" fill="#555">Immutable DTO; no DB rows cross the boundary</text>
+  <line x1="1295" y1="490" x2="1295" y2="536" stroke="#b42318" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrowRed)"/>
+  <rect x="1046" y="662" width="108" height="56" fill="#ffffff"/>
+  <text x="1100" y="678" text-anchor="middle" font-size="12" font-weight="bold" fill="#b42318">timeout</text>
+  <text x="1100" y="694" text-anchor="middle" font-size="12" font-weight="bold" fill="#b42318">retry</text>
+  <text x="1100" y="710" text-anchor="middle" font-size="12" font-weight="bold" fill="#b42318">fallback</text>
+
+  <text x="30" y="840" font-size="13" fill="#555">Crash right after commit: the outbox row is already durable, so the poller sends it after restart — no notification is lost.</text>
+</svg>

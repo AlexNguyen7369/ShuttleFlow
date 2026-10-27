@@ -112,7 +112,7 @@ already updated.
     `push` (and `pull_request`): `actions/setup-java` with Temurin 17 and the
     Maven cache, then `mvn -B verify`. Optional: a `postgres:16` service
     container plus `SHUTTLEFLOW_PG_TEST_URL`, so the race test also runs in CI.
-16. [ ] **Distribution diagram** (PNG or PDF):
+16. [x] **Distribution diagram** (PNG or PDF):
     Client → Appointment Scheduler (Spring app: controller → service →
     `NotificationGateway`) → Notification Service (`/mock-notifications`).
     Mark the timeout/retry/fallback on the arrow and the commit point before

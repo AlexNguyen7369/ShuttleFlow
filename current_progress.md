@@ -27,8 +27,9 @@
 24. 2026-10-27 — Alex Nguyen — Added a multi-stage Dockerfile (Maven/JDK build stage, non-root eclipse-temurin:17-jre runtime) and .dockerignore; image build not yet run because Docker is not installed on this machine (M3 item 13).
 25. 2026-10-27 — Alex Nguyen — Added docker-compose.yml (postgres:16 with pg_isready healthcheck, app waiting on service_healthy and reaching the database at host db), a committed .env.example and .env in .gitignore; docker compose up not yet run here because Docker is not installed (M3 item 14).
 26. 2026-10-27 — Alex Nguyen — Added GitHub Actions CI (.github/workflows/ci.yml): Temurin 17 with Maven cache and mvn -B verify on push and pull_request, with a healthchecked postgres:16 service so the race test runs; locally all 100 tests pass including the PostgreSQL race test (M3 item 15).
+27. 2026-10-27 — Alex Nguyen — Added the distribution diagram (Milestone3/distribution-diagram.svg and .png): client, scheduler layers, the booking transaction with the outbox insert, commit point, after-commit listener and poller, gateway timeout/retry/fallback, and the DTO crossing to the notification service (M3 item 16).
 
 ## What's next
-**Implement M3 checklist item 16: the distribution diagram (client, scheduler layers, outbox, gateway with timeout/retry, mock notification service, commit point).**
+**Implement M3 checklist item 17: update README (Docker run, /health, /metrics, CI badge) and docs/features for health and metrics.**
 
-**Why this is next:** the Milestone 3 report and video walk through this diagram, and it is a graded deliverable.
+**Why this is next:** graders run the project from the README, and the docs must match the new endpoints before final verification.
