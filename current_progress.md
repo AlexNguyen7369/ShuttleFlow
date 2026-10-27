@@ -14,8 +14,9 @@
 11. 2026-10-08 — Alex Nguyen — Removed the stale nested ShuttleFlow/ copy and organized the milestone files into Milestone1/ and Milestone2/ (assignment PDF, walkthrough and voice scripts), and pointed the dashboard at the root context.md.
 12. 2026-10-27 — Alex Nguyen — Planned Milestone 3: recorded the rederive-session outbox/poller/dead-letter design in Milestone3/m3-checklist.md, wrote Milestone3/milestone3plan.md, and added a one-commit-per-checklist-item rule to CLAUDE.md.
 13. 2026-10-27 — Alex Nguyen — Recorded the ten Milestone 3 decisions (outbox, after-commit fast path, poller, gateway DTO, timeouts/retry, dead-letter, idempotency key, /health, metrics, logging) in docs/decisions.md (M3 item 1).
+14. 2026-10-27 — Alex Nguyen — Added the immutable NotificationRequest DTO and the notifications outbox table (unique idempotency_key, PENDING/SENT/FAILED status) to schema.sql and docs/schema-notes.md (M3 item 2).
 
 ## What's next
-**Implement M3 checklist item 2: add the immutable NotificationRequest DTO and the notifications outbox table in schema.sql.**
+**Implement M3 checklist item 3: the mock notification service at POST /mock-notifications with idempotent storage and tests.**
 
-**Why this is next:** the mock service, gateway and outbox code all exchange NotificationRequest and read/write the notifications table.
+**Why this is next:** the gateway needs a real HTTP receiver to call, and the duplicate-key behaviour is what makes retries harmless.

@@ -37,7 +37,7 @@ already updated.
 1. [x] **Record M3 decisions** in `docs/decisions.md`: commit-then-notify
    mechanism, outbox table + poller, timeout/retry values, idempotency key, fallback behavior,
    `/health` shape, chosen metric, and whether to use Actuator or plain code.
-2. [ ] **Notification DTO.** Add immutable `NotificationRequest`
+2. [x] **Notification DTO.** Add immutable `NotificationRequest`
    (`recipient`, `type` = `BOOKING_CONFIRMED` | `BOOKING_CANCELLED`, `message`,
    plus `idempotencyKey` and `appointmentId`) in `dto/`.
 3. [ ] **Mock notification service.** Add a second controller, e.g.
