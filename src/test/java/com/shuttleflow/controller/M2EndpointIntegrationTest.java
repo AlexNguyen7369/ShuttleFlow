@@ -315,6 +315,7 @@ class M2EndpointIntegrationTest {
     }
 
     private long insertSlot(LocalDateTime start) {
+        start = start.withNano(0); // H2 stores microseconds; Linux clocks give nanoseconds
         jdbc.update("""
                 INSERT INTO availability_slots (provider_id, service_id, start_time, end_time, status)
                 VALUES (1, 1, ?, ?, 'OPEN')
