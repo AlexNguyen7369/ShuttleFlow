@@ -1,6 +1,7 @@
 target/
 /data/
 Milestone2/
+Milestone3/
 *.class
 .idea/
 *.iml
