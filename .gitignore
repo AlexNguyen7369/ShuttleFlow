@@ -12,3 +12,6 @@ video_script2.md
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Local Docker secrets (.env.example is the committed template)
+.env

@@ -25,8 +25,9 @@
 22. 2026-10-27 — Alex Nguyen — Added GET /metrics with AtomicLong counters (bookings created, booking conflicts, notifications sent, notification failures) and the live pending-outbox count, plus a test (M3 item 10).
 23. 2026-10-27 — Alex Nguyen — Documented the notification-service-down failure scenario (detection, impact, recovery, crash variant) in docs/features/09-booking-notifications.md and ticked the required integration tests, which the earlier commits already cover (M3 items 11 and 12).
 24. 2026-10-27 — Alex Nguyen — Added a multi-stage Dockerfile (Maven/JDK build stage, non-root eclipse-temurin:17-jre runtime) and .dockerignore; image build not yet run because Docker is not installed on this machine (M3 item 13).
+25. 2026-10-27 — Alex Nguyen — Added docker-compose.yml (postgres:16 with pg_isready healthcheck, app waiting on service_healthy and reaching the database at host db), a committed .env.example and .env in .gitignore; docker compose up not yet run here because Docker is not installed (M3 item 14).
 
 ## What's next
-**Implement M3 checklist item 14: docker-compose.yml with a healthchecked postgres:16 db and the app waiting on service_healthy, credentials from .env, plus a committed .env.example.**
+**Implement M3 checklist item 15: GitHub Actions CI running mvn -B verify on push and pull_request with a postgres:16 service for the race test.**
 
-**Why this is next:** graders start the whole system with one docker compose up, and CI and the smoke test build on it.
+**Why this is next:** it catches broken pushes automatically and is a required Milestone 3 deliverable.
