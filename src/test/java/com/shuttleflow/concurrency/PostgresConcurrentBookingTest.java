@@ -91,6 +91,7 @@ class PostgresConcurrentBookingTest {
     }
 
     private long freshSlot() {
+        jdbc.update("DELETE FROM notifications");
         jdbc.update("DELETE FROM appointments");
         jdbc.update("DELETE FROM availability_slots");
         LocalDateTime start = LocalDateTime.now().plusDays(3).withNano(0);

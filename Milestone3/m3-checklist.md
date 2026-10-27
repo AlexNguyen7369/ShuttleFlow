@@ -55,7 +55,7 @@ already updated.
    - Fallback: log WARN or ERROR and count the failure. Leave the outbox row
      `PENDING` for the poller; a 4xx marks it `FAILED` instead. Never throw
      back into the booking path. The booking response is unchanged.
-6. [ ] **Commit-then-notify via outbox.** In `book()` and `cancel()`, insert a
+6. [x] **Commit-then-notify via outbox.** In `book()` and `cancel()`, insert a
    `notifications` row (`PENDING`, unique `idempotency_key`) in the same
    transaction, then publish an application event. Handle it with
    `@TransactionalEventListener(phase = AFTER_COMMIT)`. A rollback then sends
@@ -68,7 +68,7 @@ already updated.
    rows older than ~60s. It sets `SENT` on success and `FAILED` on a 4xx or
    after 5 failed rounds. Status updates are guarded with
    `WHERE status = 'PENDING'`.
-7. [ ] **Trigger on both book and cancel.** The cancel path needs the
+7. [x] **Trigger on both book and cancel.** The cancel path needs the
    customer email and slot details for the message. No new query is needed:
    the recipient is `UserSession.getEmail()`, and the court and time come from
    the existing `AppointmentRepository.findCustomerAppointment`.

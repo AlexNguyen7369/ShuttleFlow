@@ -5,6 +5,7 @@ import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.dto.AppointmentDto;
 import com.shuttleflow.dto.AvailabilityRequest;
 import com.shuttleflow.dto.BookingRequest;
+import com.shuttleflow.dto.NotificationRequest;
 import com.shuttleflow.repository.AppointmentRepository;
 import com.shuttleflow.repository.AppointmentRepository.AppointmentRecord;
 import com.shuttleflow.repository.ProviderRepository;
@@ -21,7 +22,10 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -36,6 +40,7 @@ class BookingServiceUnitTest {
     private AppointmentRepository appointments;
     private SlotRepository slots;
     private ProviderRepository providers;
+    private NotificationService notifications;
     private AppointmentService appointmentService;
     private ProviderService providerService;
 
@@ -45,7 +50,8 @@ class BookingServiceUnitTest {
         slots = mock(SlotRepository.class);
         providers = mock(ProviderRepository.class);
         SessionAuth sessionAuth = new SessionAuth();
-        appointmentService = new AppointmentService(appointments, slots, sessionAuth);
+        notifications = mock(NotificationService.class);
+        appointmentService = new AppointmentService(appointments, slots, sessionAuth, notifications);
         providerService = new ProviderService(providers, slots, appointments, sessionAuth);
     }
 
@@ -61,6 +67,7 @@ class BookingServiceUnitTest {
 
         assertEquals(dto, appointmentService.book(new BookingRequest(7L, null), customer(3)));
         verify(slots).updateStatus(7, "OPEN", "BOOKED");
+        verify(notifications).enqueue(eq(NotificationRequest.BOOKING_CONFIRMED), anyString(), eq(dto));
     }
 
     @Test
@@ -105,6 +112,7 @@ class BookingServiceUnitTest {
         when(slots.updateStatus(7, "OPEN", "BOOKED")).thenReturn(0);
         assertThrows(BookingConflictException.class,
                 () -> appointmentService.book(new BookingRequest(7L, null), customer(3)));
+        verify(notifications, never()).enqueue(anyString(), anyString(), any());
     }
 
     // --- cancellation ---
@@ -114,9 +122,12 @@ class BookingServiceUnitTest {
         when(appointments.findByIdForUpdate(50)).thenReturn(Optional.of(appointment(50, 7, 3, "BOOKED", FUTURE)));
         when(appointments.cancel(50)).thenReturn(1);
         when(slots.updateStatus(7, "BOOKED", "OPEN")).thenReturn(1);
+        AppointmentDto dto = new AppointmentDto(50, 7, "Court 3", "Singles", FUTURE, FUTURE.plusHours(1), "CANCELLED");
+        when(appointments.findCustomerAppointment(50, 3)).thenReturn(Optional.of(dto));
 
         appointmentService.cancel(50, customer(3));
         verify(slots).updateStatus(7, "BOOKED", "OPEN");
+        verify(notifications).enqueue(eq(NotificationRequest.BOOKING_CANCELLED), anyString(), eq(dto));
     }
 
     @Test
@@ -131,6 +142,7 @@ class BookingServiceUnitTest {
         assertThrows(NotFoundException.class, () -> appointmentService.cancel(53, customer(3)));
         assertThrows(ForbiddenException.class, () -> appointmentService.cancel(50, provider(1)));
         verify(appointments, never()).cancel(anyLong());
+        verify(notifications, never()).enqueue(anyString(), anyString(), any());
     }
 
     // --- provider availability ---

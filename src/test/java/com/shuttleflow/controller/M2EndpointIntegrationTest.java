@@ -29,6 +29,7 @@ class M2EndpointIntegrationTest {
 
     @BeforeEach
     void clearTestSlots() {
+        jdbc.update("DELETE FROM notifications");
         jdbc.update("DELETE FROM appointments");
         jdbc.update("DELETE FROM availability_slots");
     }

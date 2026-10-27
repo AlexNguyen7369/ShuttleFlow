@@ -46,6 +46,7 @@ class SlotControllerBrowseTest {
 
     @BeforeEach
     void clearSlots() {
+        jdbc.update("DELETE FROM notifications");
         jdbc.update("DELETE FROM appointments");
         jdbc.update("DELETE FROM availability_slots");
         courtId = jdbc.queryForObject("SELECT provider_id FROM providers WHERE name = ?", Long.class, "Court 3");

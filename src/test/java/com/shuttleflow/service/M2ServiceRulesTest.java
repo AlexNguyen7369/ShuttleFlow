@@ -25,6 +25,7 @@ class M2ServiceRulesTest {
 
     @BeforeEach
     void clearSlots() {
+        jdbc.update("DELETE FROM notifications");
         jdbc.update("DELETE FROM appointments");
         jdbc.update("DELETE FROM availability_slots");
     }
