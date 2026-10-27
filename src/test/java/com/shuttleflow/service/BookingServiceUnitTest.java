@@ -8,6 +8,7 @@ import com.shuttleflow.dto.BookingRequest;
 import com.shuttleflow.dto.NotificationRequest;
 import com.shuttleflow.repository.AppointmentRepository;
 import com.shuttleflow.repository.AppointmentRepository.AppointmentRecord;
+import com.shuttleflow.repository.NotificationRepository;
 import com.shuttleflow.repository.ProviderRepository;
 import com.shuttleflow.repository.SlotRepository;
 import com.shuttleflow.repository.SlotRepository.SlotRecord;
@@ -51,7 +52,8 @@ class BookingServiceUnitTest {
         providers = mock(ProviderRepository.class);
         SessionAuth sessionAuth = new SessionAuth();
         notifications = mock(NotificationService.class);
-        appointmentService = new AppointmentService(appointments, slots, sessionAuth, notifications);
+        appointmentService = new AppointmentService(appointments, slots, sessionAuth, notifications,
+                new MetricsService(mock(NotificationRepository.class)));
         providerService = new ProviderService(providers, slots, appointments, sessionAuth);
     }
 

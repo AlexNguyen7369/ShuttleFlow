@@ -33,9 +33,10 @@ public class NotificationService {
     private final ApplicationEventPublisher eventPublisher;
     private final int maxRounds;
     private final long staleAfterSeconds;
+    private final MetricsService metricsService;
 
     public NotificationService(NotificationRepository notificationRepository, NotificationGateway notificationGateway,
-                               ApplicationEventPublisher eventPublisher,
+                               ApplicationEventPublisher eventPublisher, MetricsService metricsService,
                                @Value("${shuttleflow.notification.max-rounds}") int maxRounds,
                                @Value("${shuttleflow.notification.stale-after-seconds}") long staleAfterSeconds) {
         this.notificationRepository = notificationRepository;
@@ -43,6 +44,7 @@ public class NotificationService {
         this.eventPublisher = eventPublisher;
         this.maxRounds = maxRounds;
         this.staleAfterSeconds = staleAfterSeconds;
+        this.metricsService = metricsService;
     }
 
     /** Must be called inside the transaction that books or cancels the appointment. */
@@ -83,10 +85,16 @@ public class NotificationService {
         NotificationRequest request = new NotificationRequest(row.recipient(), row.type(), row.message(),
                 row.idempotencyKey(), row.appointmentId());
         LocalDateTime now = LocalDateTime.now();
-        switch (notificationGateway.send(request)) {
+        SendResult result = notificationGateway.send(request);
+        switch (result) {
             case SENT -> notificationRepository.markSent(notificationId, now);
             case PERMANENT -> notificationRepository.markFailed(notificationId, now);
             case RETRYABLE -> notificationRepository.recordFailedRound(notificationId, now, maxRounds);
+        }
+        if (result == SendResult.SENT) {
+            metricsService.notificationSent();
+        } else {
+            metricsService.notificationFailed();
         }
     }
 }
