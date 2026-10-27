@@ -102,7 +102,7 @@ already updated.
 13. [x] **Dockerfile.** Multi-stage build: `maven:3.9-eclipse-temurin-17`
     builds the jar, then `eclipse-temurin:17-jre` runs it on port 8080.
     Add a `.dockerignore` (`target/`, `data/`, `.git/`).
-14. [ ] **docker-compose.yml.** Two services: `db` (`postgres:16`, with a
+14. [x] **docker-compose.yml.** Two services: `db` (`postgres:16`, with a
     healthcheck) and `app` (`depends_on: db: condition: service_healthy`,
     `SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/shuttleflow`). Read
     credentials from env or `.env`. Never commit real secrets. Commit a

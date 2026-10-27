@@ -1,0 +1,27 @@
+# One-command start: cp .env.example .env, edit the values, then docker compose up --build
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: shuttleflow
+      POSTGRES_USER: ${DB_USERNAME:?set DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    # Compose only starts the app once PostgreSQL accepts connections, not merely once the container runs.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d shuttleflow"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # "db" is the service name; Compose's network resolves it to the database container.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/shuttleflow
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8080:8080"
