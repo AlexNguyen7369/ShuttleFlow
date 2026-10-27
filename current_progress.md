@@ -17,8 +17,9 @@
 14. 2026-10-27 — Alex Nguyen — Added the immutable NotificationRequest DTO and the notifications outbox table (unique idempotency_key, PENDING/SENT/FAILED status) to schema.sql and docs/schema-notes.md (M3 item 2).
 15. 2026-10-27 — Alex Nguyen — Added the mock notification service (POST /mock-notifications: 202 new, 200 repeat key stored once, 400 on blank fields) with 2 tests (M3 item 3).
 16. 2026-10-27 — Alex Nguyen — Added NotificationGateway: one RestClient POST per event to the configurable shuttleflow.notification.base-url, classifying results as SENT / RETRYABLE (5xx, refused) / PERMANENT (4xx), with 4 real-HTTP stub tests (M3 item 4).
+17. 2026-10-27 — Alex Nguyen — Added 1s connect / 2s read timeouts and up to 3 attempts with doubling backoff (timeout, refused, 5xx only; never 4xx) to NotificationGateway, with blip, give-up and hung-service tests (M3 item 5).
 
 ## What's next
-**Implement M3 checklist item 5: connect/read timeouts and up to 3 attempts with backoff on retryable failures in NotificationGateway.**
+**Implement M3 checklist items 6, 6a and 7: write the outbox row inside book()/cancel(), send it from an async after-commit listener, and add the scheduled poller.**
 
-**Why this is next:** without timeouts a hung service ties up the sender, and without retries a brief blip leaves every notification to the 30s poller.
+**Why this is next:** this connects the gateway to booking, which is the core of the Milestone 3 distribution boundary.

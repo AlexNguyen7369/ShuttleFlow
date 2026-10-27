@@ -48,7 +48,7 @@ already updated.
    coarse-grained method, `send(NotificationRequest)`. It calls the mock over
    real HTTP with `RestClient` (already in `spring-boot-starter-web`). The
    base URL comes from a property (`shuttleflow.notification.base-url`).
-5. [ ] **Timeout, retry, fallback.**
+5. [x] **Timeout, retry, fallback.**
    - Set connect and read timeouts on the request factory (e.g. 1s / 2s).
    - Retry a few times (e.g. 3 attempts, short backoff), only on timeout,
      connection error, or 5xx. Never retry 4xx.

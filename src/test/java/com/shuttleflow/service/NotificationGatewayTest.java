@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Real HTTP against a JDK stub server, so timeouts and status codes behave as on the wire. */
 class NotificationGatewayTest {
@@ -21,6 +22,11 @@ class NotificationGatewayTest {
 
     private HttpServer server;
     private final AtomicInteger hits = new AtomicInteger();
+    private volatile long delayMs;
+
+    private static NotificationGateway gateway(String baseUrl) {
+        return new NotificationGateway(baseUrl, 200, 200, 3, 10);
+    }
 
     @AfterEach
     void stop() {
@@ -37,6 +43,7 @@ class NotificationGatewayTest {
             hits.incrementAndGet();
             int status = queue.size() > 1 ? queue.poll() : queue.peek();
             exchange.getRequestBody().readAllBytes();
+            sleep(delayMs);
             exchange.sendResponseHeaders(status, -1);
             exchange.close();
         });
@@ -46,23 +53,46 @@ class NotificationGatewayTest {
 
     @Test
     void successIsSentInOneCall() throws IOException {
-        assertEquals(SendResult.SENT, new NotificationGateway(stub(202)).send(REQUEST));
+        assertEquals(SendResult.SENT, gateway(stub(202)).send(REQUEST));
         assertEquals(1, hits.get());
     }
 
     @Test
     void clientErrorIsPermanent() throws IOException {
-        assertEquals(SendResult.PERMANENT, new NotificationGateway(stub(400)).send(REQUEST));
+        assertEquals(SendResult.PERMANENT, gateway(stub(400)).send(REQUEST));
         assertEquals(1, hits.get());
     }
 
     @Test
-    void serverErrorIsRetryable() throws IOException {
-        assertEquals(SendResult.RETRYABLE, new NotificationGateway(stub(503)).send(REQUEST));
+    void blipThenSuccessIsSentOnSecondAttempt() throws IOException {
+        assertEquals(SendResult.SENT, gateway(stub(503, 202)).send(REQUEST));
+        assertEquals(2, hits.get());
+    }
+
+    @Test
+    void persistentServerErrorGivesUpAfterMaxAttempts() throws IOException {
+        assertEquals(SendResult.RETRYABLE, gateway(stub(503)).send(REQUEST));
+        assertEquals(3, hits.get());
+    }
+
+    @Test
+    void hungServiceTimesOutAndIsRetryable() throws IOException {
+        delayMs = 600;
+        long start = System.nanoTime();
+        assertEquals(SendResult.RETRYABLE, gateway(stub(202)).send(REQUEST));
+        assertTrue((System.nanoTime() - start) / 1_000_000 < 3_000, "read timeout must bound each attempt");
+    }
+
+    private static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Test
     void refusedConnectionIsRetryable() {
-        assertEquals(SendResult.RETRYABLE, new NotificationGateway("http://127.0.0.1:1").send(REQUEST));
+        assertEquals(SendResult.RETRYABLE, gateway("http://127.0.0.1:1").send(REQUEST));
     }
 }
