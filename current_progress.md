@@ -18,8 +18,9 @@
 15. 2026-10-27 — Alex Nguyen — Added the mock notification service (POST /mock-notifications: 202 new, 200 repeat key stored once, 400 on blank fields) with 2 tests (M3 item 3).
 16. 2026-10-27 — Alex Nguyen — Added NotificationGateway: one RestClient POST per event to the configurable shuttleflow.notification.base-url, classifying results as SENT / RETRYABLE (5xx, refused) / PERMANENT (4xx), with 4 real-HTTP stub tests (M3 item 4).
 17. 2026-10-27 — Alex Nguyen — Added 1s connect / 2s read timeouts and up to 3 attempts with doubling backoff (timeout, refused, 5xx only; never 4xx) to NotificationGateway, with blip, give-up and hung-service tests (M3 item 5).
+18. 2026-10-27 — Alex Nguyen — Wired the transactional outbox: book() and cancel() insert a BOOKED:/CANCELLED:<id> notifications row in their transaction and an @Async after-commit listener sends it (rollback sends nothing); added NotificationRepository, NotificationService, 9 tests including booking/cancel with the service down (M3 items 6 and 7, done together because the same code covers both).
 
 ## What's next
-**Implement M3 checklist items 6, 6a and 7: write the outbox row inside book()/cancel(), send it from an async after-commit listener, and add the scheduled poller.**
+**Implement M3 checklist item 6a: the @Scheduled outbox poller that resends PENDING rows older than 60s.**
 
-**Why this is next:** this connects the gateway to booking, which is the core of the Milestone 3 distribution boundary.
+**Why this is next:** without it a notification whose fast-path send failed, or whose process crashed after commit, is never resent.
