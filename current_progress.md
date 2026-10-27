@@ -20,8 +20,9 @@
 17. 2026-10-27 — Alex Nguyen — Added 1s connect / 2s read timeouts and up to 3 attempts with doubling backoff (timeout, refused, 5xx only; never 4xx) to NotificationGateway, with blip, give-up and hung-service tests (M3 item 5).
 18. 2026-10-27 — Alex Nguyen — Wired the transactional outbox: book() and cancel() insert a BOOKED:/CANCELLED:<id> notifications row in their transaction and an @Async after-commit listener sends it (rollback sends nothing); added NotificationRepository, NotificationService, 9 tests including booking/cancel with the service down (M3 items 6 and 7, done together because the same code covers both).
 19. 2026-10-27 — Alex Nguyen — Added the @Scheduled outbox poller (every 30s, PENDING rows older than 60s, dead-letter FAILED after 5 rounds) with unit and integration tests (M3 item 6a).
+20. 2026-10-27 — Alex Nguyen — Added SLF4J logging with ids only: INFO booking created/cancelled, WARN booking conflict, plus the gateway's sent/attempt-failed/gave-up lines (M3 item 8).
 
 ## What's next
-**Implement M3 checklist item 8: SLF4J INFO/WARN logging for bookings, cancellations and conflicts, ids only.**
+**Implement M3 checklist item 9: GET /health running SELECT 1 through HealthController, HealthService and HealthRepository (200 UP / 503 DOWN).**
 
-**Why this is next:** the health, metrics and failure-scenario items all report on these events, and the report needs the logging plan shown in code.
+**Why this is next:** Docker Compose and graders need a status-code health signal, and the compose file in item 14 depends on the app being checkable.

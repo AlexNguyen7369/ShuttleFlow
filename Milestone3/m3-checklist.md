@@ -72,7 +72,7 @@ already updated.
    customer email and slot details for the message. No new query is needed:
    the recipient is `UserSession.getEmail()`, and the court and time come from
    the existing `AppointmentRepository.findCustomerAppointment`.
-8. [ ] **Logging.** Add SLF4J `Logger` (comes with Spring Boot) and emit
+8. [x] **Logging.** Add SLF4J `Logger` (comes with Spring Boot) and emit
    these messages:
    - INFO: `Booking created appointmentId=12 slotId=5 userId=3`, `Notification sent key=BOOKED:12 attempt=1`
    - WARN: `Notification attempt 2/3 failed key=BOOKED:12: Read timed out`, `Booking conflict slotId=5`
