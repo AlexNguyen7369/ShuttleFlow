@@ -64,7 +64,7 @@ already updated.
    so every retry carries the same key. The listener is `@Async`, so the
    booking response never waits on the call. It is the fast path, and the
    poller (6a) is the backstop.
-6a. [ ] **Outbox poller.** A `@Scheduled` job every ~30s resends `PENDING`
+6a. [x] **Outbox poller.** A `@Scheduled` job every ~30s resends `PENDING`
    rows older than ~60s. It sets `SENT` on success and `FAILED` on a 4xx or
    after 5 failed rounds. Status updates are guarded with
    `WHERE status = 'PENDING'`.
