@@ -32,9 +32,9 @@ docs/                                   requirements PDF + decisions.md, schema-
 pom.xml
 src/main/java/com/shuttleflow/
 ├── ShuttleflowApplication.java         entry point
-├── controller/                         @RestController — HTTP in, DTO out (Home, Slot, Auth, Appointment, Provider) + ApiExceptionHandler
-├── service/                            @Service — business rules, RBAC, transactions (Home, Slot, Auth, Appointment, Provider) + exceptions
-├── repository/                         @Repository — JdbcTemplate + RowMapper (Slot, User, Appointment, Provider)
+├── controller/                         @RestController — HTTP in, DTO out (Home, Slot, Auth, Appointment, Provider, Health, Metrics, MockNotification) + ApiExceptionHandler
+├── service/                            @Service — business rules, RBAC, transactions (Home, Slot, Auth, Appointment, Provider, Notification outbox + Gateway, Health, Metrics) + exceptions
+├── repository/                         @Repository — JdbcTemplate + RowMapper (Slot, User, Appointment, Provider, Notification, Health)
 ├── dto/                                immutable request/response types
 ├── auth/                               UserSession (session identity) + SessionAuth (401/403 guards)
 └── config/                             PasswordConfig (BCrypt), CorsConfig

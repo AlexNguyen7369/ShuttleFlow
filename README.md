@@ -1,5 +1,7 @@
 # ShuttleFlow (Head2Head)
 
+[![CI](https://github.com/AlexNguyen7369/ShuttleFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/AlexNguyen7369/ShuttleFlow/actions/workflows/ci.yml)
+
 **ShuttleFlow** is a badminton platform that starts as a court and coach booking system and grows into full head-to-head match tracking — live scores, shot data, and player stats — with an AI layer on top.
 
 ## Vision
@@ -37,6 +39,20 @@ This repo currently implements stage 1, built as the required project for CMPE 1
 - PostgreSQL 14+ running locally (runtime database; tests use in-memory H2 and need no server)
 
 ## Run
+
+### With Docker (no local Java, Maven or PostgreSQL needed)
+
+```bash
+cp .env.example .env          # choose DB_USERNAME / DB_PASSWORD; .env is never committed
+docker compose up --build     # PostgreSQL first (healthchecked), then the app on :8080
+curl localhost:8080/health    # {"status":"UP","database":"UP"}
+```
+
+The multi-stage `Dockerfile` builds the jar with Maven + JDK and ships only a
+slim Java 17 runtime. Compose starts the app only after `pg_isready` passes,
+and the app reaches the database at host `db`.
+
+### Locally
 
 One-time local database setup:
 
@@ -86,6 +102,9 @@ These passwords are for local/test fixtures only, not deployment credentials.
 | `POST /provider/slots` | provider | `201` new open slot | `400`, `401`, `403`, `404`, `409` |
 | `DELETE /provider/slots/{id}` | owning provider | `204` slot removed | `401`, `403`, `404`, `409` |
 | `GET /provider/appointments` | provider | `200` bookings on own slots + customer name/email | `401`, `403` |
+| `GET /health` | anyone | `200` `{"status":"UP","database":"UP"}` | `503` DOWN when the DB is unreachable |
+| `GET /metrics` | anyone | `200` booking/notification counters + pending outbox count | — |
+| `POST /mock-notifications` | notification boundary | `202` new key, `200` repeat key | `400` |
 
 Every error body is `{"error": "..."}` with no stack trace, SQL, or credential
 detail (`ApiExceptionHandler`). Unknown routes keep their real `404`/`405`/`415`.
@@ -147,6 +166,26 @@ service translates that to the same `409`. Cancelling sets the appointment to
 H2), so history is kept and the slot can be booked again. There is no retry:
 the losing request's outcome is final because the slot is taken.
 
+### Notifications, health and metrics (Milestone 3)
+
+- **Commit-then-notify through an outbox.** Booking and cancelling insert a
+  `notifications` row (`PENDING`, key `BOOKED:<id>` / `CANCELLED:<id>`) in the
+  same transaction. After commit, a background listener sends one
+  `NotificationRequest` DTO to the notification service
+  (`shuttleflow.notification.base-url`, env `NOTIFICATION_BASE_URL`).
+- **Fault handling.** Timeouts are connect 1s and read 2s. The gateway makes
+  up to 3 attempts with backoff on timeout, refused connection or 5xx, and
+  never retries a 4xx. A `@Scheduled` poller resends `PENDING` rows older than
+  60s. A 4xx, or 5 failed rounds, moves the row to `FAILED`. The booking
+  response never depends on the notification.
+- **Observability.**
+  - `GET /health` runs `SELECT 1`.
+  - `GET /metrics` exposes the counters.
+  - Logs carry ids only, never passwords, session IDs or message bodies.
+
+See `docs/features/09-booking-notifications.md` (with the failure scenario) and
+`Milestone3/distribution-diagram.png`.
+
 ### Browser client
 
 `frontend/` is a dependency-free HTML/CSS/JS client: home, login (customer or
@@ -158,7 +197,7 @@ with `credentials: "include"`; `CorsConfig` allows its origin with cookies.
 ## Testing
 
 ```bash
-mvn test                       # 70+ tests on in-memory H2 (no server needed)
+mvn test                       # 91 tests on in-memory H2 (no server needed)
 mvn clean package              # build target/shuttleflow-0.1.0.jar
 
 # Also run the 8-thread same-slot race 10 times against real PostgreSQL:
@@ -176,26 +215,37 @@ SHUTTLEFLOW_PG_TEST_URL=jdbc:postgresql://localhost:5432/shuttleflow_test mvn te
 | `SessionAuthTest`, `SeedPasswordHashTest` | Role guards; seed hashes are BCrypt |
 | `ConcurrentBookingTest` | Two customers released by a latch on one slot: one `201`, one conflict |
 | `PostgresConcurrentBookingTest` | 8 threads × 10 rounds on PostgreSQL: exactly one active booking each round |
+| `NotificationIntegrationTest` | Book/cancel succeed with the notification service down; 409 writes no outbox row; poller retry and dead-letter |
+| `NotificationGatewayTest` | Real HTTP stub: success, 4xx not retried, 503-then-success, give-up, hung-service timeout, refused port |
+| `NotificationServiceTest` | Outbox key/message, status transitions, poller dispatch |
+| `MockNotificationControllerTest` | `202` new key, `200` repeat stored once, `400` blank fields |
+| `HealthControllerTest`, `MetricsControllerTest` | `/health` UP `200` / DOWN `503`; booking and conflict counters |
+
+GitHub Actions (`.github/workflows/ci.yml`) runs `mvn -B verify` on every push
+and pull request, with a `postgres:16` service so the race test runs too.
 
 ## Project structure
 
 ```
 src/main/java/com/shuttleflow/
-  controller/   HTTP boundary (Auth, Slot, Appointment, Provider, Home) + ApiExceptionHandler
-  service/      validation, RBAC/ownership, booking rules, transactions, domain exceptions
-  repository/   parameterized JdbcTemplate SQL constants + RowMappers (User, Slot, Appointment, Provider)
+  controller/   HTTP boundary (Auth, Slot, Appointment, Provider, Home, Health, Metrics, MockNotification) + ApiExceptionHandler
+  service/      validation, RBAC/ownership, booking rules, transactions, outbox + NotificationGateway, health, metrics
+  repository/   parameterized JdbcTemplate SQL constants + RowMappers (User, Slot, Appointment, Provider, Notification, Health)
   dto/          immutable request/response objects
   auth/         UserSession (identity in the HTTP session) + SessionAuth (401/403 guards)
   config/       PasswordConfig (BCrypt), CorsConfig (frontend origin + cookies)
 src/main/resources/
-  application.properties   PostgreSQL datasource, sql.init, CORS origins
-  schema.sql               one portable schema for PostgreSQL and H2, incl. the double-booking UNIQUE key
+  application.properties   PostgreSQL datasource, sql.init, CORS origins, notification timeouts/retry/poller
+  schema.sql               one portable schema for PostgreSQL and H2, incl. the double-booking UNIQUE key and notifications outbox
   seed.sql                 4 users, 2 providers, 3 services, 7 future slots (relative to boot day)
 src/test/                  unit, integration, and concurrency tests (H2 profile; optional PostgreSQL race)
 frontend/                  index.html + src/app.js + src/styles.css
-docs/                      decisions, schema notes, feature specs 01-08
+docs/                      decisions, schema notes, feature specs 01-10
 Milestone1/                M1 walkthrough script (gitignored)
 Milestone2/                assignment PDF, plan, checklist, evidence report, summary, walkthrough scripts
+Milestone3/                assignment PDF, checklist, implementation plan, distribution diagram
+Dockerfile, docker-compose.yml, .env.example   container build and one-command run
+.github/workflows/ci.yml   CI: mvn -B verify with a PostgreSQL service
 tools/dashboard/           local project dashboard (python3 tools/dashboard/server.py)
 ```
 
