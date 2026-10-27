@@ -21,8 +21,9 @@
 18. 2026-10-27 — Alex Nguyen — Wired the transactional outbox: book() and cancel() insert a BOOKED:/CANCELLED:<id> notifications row in their transaction and an @Async after-commit listener sends it (rollback sends nothing); added NotificationRepository, NotificationService, 9 tests including booking/cancel with the service down (M3 items 6 and 7, done together because the same code covers both).
 19. 2026-10-27 — Alex Nguyen — Added the @Scheduled outbox poller (every 30s, PENDING rows older than 60s, dead-letter FAILED after 5 rounds) with unit and integration tests (M3 item 6a).
 20. 2026-10-27 — Alex Nguyen — Added SLF4J logging with ids only: INFO booking created/cancelled, WARN booking conflict, plus the gateway's sent/attempt-failed/gave-up lines (M3 item 8).
+21. 2026-10-27 — Alex Nguyen — Added GET /health (SELECT 1 via HealthController, HealthService and HealthRepository; 200 UP / 503 DOWN with an ERROR log) and 2 tests (M3 item 9).
 
 ## What's next
-**Implement M3 checklist item 9: GET /health running SELECT 1 through HealthController, HealthService and HealthRepository (200 UP / 503 DOWN).**
+**Implement M3 checklist item 10: AtomicLong counters (bookings created, conflicts, notifications sent/failed, pending outbox) exposed at GET /metrics.**
 
-**Why this is next:** Docker Compose and graders need a status-code health signal, and the compose file in item 14 depends on the app being checkable.
+**Why this is next:** trends like a notification-failure spike are invisible in logs alone, and the report requires at least one metric.
