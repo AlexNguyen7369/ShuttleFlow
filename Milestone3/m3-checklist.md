@@ -40,7 +40,7 @@ already updated.
 2. [x] **Notification DTO.** Add immutable `NotificationRequest`
    (`recipient`, `type` = `BOOKING_CONFIRMED` | `BOOKING_CANCELLED`, `message`,
    plus `idempotencyKey` and `appointmentId`) in `dto/`.
-3. [ ] **Mock notification service.** Add a second controller, e.g.
+3. [x] **Mock notification service.** Add a second controller, e.g.
    `MockNotificationController` at `POST /mock-notifications`. It validates
    the DTO, logs and stores it in memory, and returns success. A repeated
    `idempotencyKey` returns success without storing it twice.
