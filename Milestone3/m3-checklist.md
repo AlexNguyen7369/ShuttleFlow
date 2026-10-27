@@ -119,7 +119,7 @@ already updated.
     the call.
 17. [x] **Docs.** Update README (run with Docker, `/health`, metric, CI
     badge), `docs/decisions.md`, and `docs/features/`.
-18. [ ] **Verify.** `mvn test`, `mvn clean package`, `docker compose up`,
+18. [x] **Verify.** `mvn test`, `mvn clean package`, `docker compose up`,
     a green CI run on GitHub, and a reviewer agent PASS.
 
 ## Design justification notes (for the report)
