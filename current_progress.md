@@ -22,8 +22,9 @@
 19. 2026-10-27 — Alex Nguyen — Added the @Scheduled outbox poller (every 30s, PENDING rows older than 60s, dead-letter FAILED after 5 rounds) with unit and integration tests (M3 item 6a).
 20. 2026-10-27 — Alex Nguyen — Added SLF4J logging with ids only: INFO booking created/cancelled, WARN booking conflict, plus the gateway's sent/attempt-failed/gave-up lines (M3 item 8).
 21. 2026-10-27 — Alex Nguyen — Added GET /health (SELECT 1 via HealthController, HealthService and HealthRepository; 200 UP / 503 DOWN with an ERROR log) and 2 tests (M3 item 9).
+22. 2026-10-27 — Alex Nguyen — Added GET /metrics with AtomicLong counters (bookings created, booking conflicts, notifications sent, notification failures) and the live pending-outbox count, plus a test (M3 item 10).
 
 ## What's next
-**Implement M3 checklist item 10: AtomicLong counters (bookings created, conflicts, notifications sent/failed, pending outbox) exposed at GET /metrics.**
+**Implement M3 checklist items 11-12: document the notification-down failure scenario and recovery, and confirm the required integration tests cover it.**
 
-**Why this is next:** trends like a notification-failure spike are invisible in logs alone, and the report requires at least one metric.
+**Why this is next:** the report's system-management section needs the failure and recovery story, and most of its tests already exist.

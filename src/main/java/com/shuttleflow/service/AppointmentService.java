@@ -26,13 +26,16 @@ public class AppointmentService {
     private final SlotRepository slotRepository;
     private final SessionAuth sessionAuth;
     private final NotificationService notificationService;
+    private final MetricsService metricsService;
 
     public AppointmentService(AppointmentRepository appointmentRepository, SlotRepository slotRepository,
-                              SessionAuth sessionAuth, NotificationService notificationService) {
+                              SessionAuth sessionAuth, NotificationService notificationService,
+                              MetricsService metricsService) {
         this.appointmentRepository = appointmentRepository;
         this.slotRepository = slotRepository;
         this.sessionAuth = sessionAuth;
         this.notificationService = notificationService;
+        this.metricsService = metricsService;
     }
 
     /**
@@ -78,6 +81,7 @@ public class AppointmentService {
         } catch (DataIntegrityViolationException e) {
             throw conflict(slot.slotId());
         }
+        metricsService.bookingCreated();
         log.info("Booking created appointmentId={} slotId={} userId={}",
                 booked.getAppointmentId(), slot.slotId(), user.getUserId());
         // Outbox row joins this transaction; the actual send waits for commit.
@@ -125,8 +129,9 @@ public class AppointmentService {
                 appointmentId, appointment.slotId(), user.getUserId());
     }
 
-    private static BookingConflictException conflict(long slotId) {
+    private BookingConflictException conflict(long slotId) {
         log.warn("Booking conflict slotId={}", slotId);
+        metricsService.bookingConflict();
         return new BookingConflictException();
     }
 }

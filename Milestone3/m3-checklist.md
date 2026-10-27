@@ -83,7 +83,7 @@ already updated.
    repository. It returns `200 {"status":"UP","database":"UP"}`, or
    `503 {"status":"DOWN","database":"DOWN"}` when the query fails. Keep the
    layers: `HealthController` → `HealthService` → `HealthRepository`.
-10. [ ] **Metric.** Pick at least one: bookings created, failed bookings
+10. [x] **Metric.** Pick at least one: bookings created, failed bookings
     (409s), notification failures, or average booking latency. Expose it
     (e.g. `GET /metrics` or inside `/health`). Plain counters
     (`AtomicLong`) are enough. Actuator + Micrometer is the other option.
