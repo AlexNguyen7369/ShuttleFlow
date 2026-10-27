@@ -1,6 +1,7 @@
 package com.shuttleflow.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shuttleflow.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,7 @@ class NotificationIntegrationTest {
     @Autowired private MockMvc mvc;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper json;
+    @Autowired private NotificationService notificationService;
 
     @BeforeEach
     void clear() {
@@ -67,6 +69,35 @@ class NotificationIntegrationTest {
                         .contentType("application/json").content("{\"slotId\":" + slotId + "}"))
                 .andExpect(status().isConflict());
         assertEquals(1, count("SELECT COUNT(*) FROM notifications"));
+    }
+
+    @Test
+    void pollerRetriesStaleRowsAndDeadLettersAfterMaxRounds() throws Exception {
+        long slotId = insertSlot(LocalDateTime.now().plusDays(3));
+        String key = "BOOKED:" + book(login("alex@shuttleflow.com", "alex-test"), slotId);
+        awaitAttempts(key);
+
+        // Fresh rows are left to the fast path.
+        notificationService.sendDue();
+        assertEquals(1, attempts(key));
+
+        jdbc.update("UPDATE notifications SET created_at = ? WHERE idempotency_key = ?",
+                LocalDateTime.now().minusMinutes(2), key);
+        notificationService.sendDue();
+        assertEquals(2, attempts(key));
+        assertEquals("PENDING", jdbc.queryForObject(
+                "SELECT status FROM notifications WHERE idempotency_key = ?", String.class, key));
+
+        jdbc.update("UPDATE notifications SET attempts = 4 WHERE idempotency_key = ?", key);
+        notificationService.sendDue();
+        assertEquals("FAILED", jdbc.queryForObject(
+                "SELECT status FROM notifications WHERE idempotency_key = ?", String.class, key));
+        notificationService.sendDue();
+        assertEquals(5, attempts(key));
+    }
+
+    private int attempts(String key) {
+        return jdbc.queryForObject("SELECT attempts FROM notifications WHERE idempotency_key = ?", Integer.class, key);
     }
 
     /** The after-commit listener runs on another thread; wait for its failed round to be recorded. */

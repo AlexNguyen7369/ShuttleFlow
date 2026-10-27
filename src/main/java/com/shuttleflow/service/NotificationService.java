@@ -7,6 +7,7 @@ import com.shuttleflow.repository.NotificationRepository.NotificationRecord;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -31,14 +32,17 @@ public class NotificationService {
     private final NotificationGateway notificationGateway;
     private final ApplicationEventPublisher eventPublisher;
     private final int maxRounds;
+    private final long staleAfterSeconds;
 
     public NotificationService(NotificationRepository notificationRepository, NotificationGateway notificationGateway,
                                ApplicationEventPublisher eventPublisher,
-                               @Value("${shuttleflow.notification.max-rounds}") int maxRounds) {
+                               @Value("${shuttleflow.notification.max-rounds}") int maxRounds,
+                               @Value("${shuttleflow.notification.stale-after-seconds}") long staleAfterSeconds) {
         this.notificationRepository = notificationRepository;
         this.notificationGateway = notificationGateway;
         this.eventPublisher = eventPublisher;
         this.maxRounds = maxRounds;
+        this.staleAfterSeconds = staleAfterSeconds;
     }
 
     /** Must be called inside the transaction that books or cancels the appointment. */
@@ -56,6 +60,18 @@ public class NotificationService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onQueued(NotificationQueuedEvent event) {
         dispatch(event.notificationId());
+    }
+
+    /**
+     * Backstop for the after-commit send: runs on a timer, so it needs no crash detection. Only rows
+     * older than stale-after-seconds are picked up, so it does not race a fast-path send in flight.
+     */
+    @Scheduled(fixedDelayString = "${shuttleflow.notification.poll-ms}",
+            initialDelayString = "${shuttleflow.notification.poll-ms}")
+    public void sendDue() {
+        for (long notificationId : notificationRepository.findDue(LocalDateTime.now().minusSeconds(staleAfterSeconds), 50)) {
+            dispatch(notificationId);
+        }
     }
 
     /** One delivery round for a PENDING row; a row another sender already finished is skipped. */

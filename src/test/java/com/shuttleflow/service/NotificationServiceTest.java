@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -32,7 +33,7 @@ class NotificationServiceTest {
         repository = mock(NotificationRepository.class);
         gateway = mock(NotificationGateway.class);
         publisher = mock(ApplicationEventPublisher.class);
-        service = new NotificationService(repository, gateway, publisher, 5);
+        service = new NotificationService(repository, gateway, publisher, 5, 60);
         when(repository.findPending(9)).thenReturn(Optional.of(new NotificationRecord(
                 9, 57, "BOOKED:57", NotificationRequest.BOOKING_CONFIRMED, "alex@shuttleflow.com", "msg", 0)));
     }
@@ -78,6 +79,14 @@ class NotificationServiceTest {
         service.dispatch(9);
         verify(repository).recordFailedRound(eq(9L), any(), eq(5));
         verify(repository, never()).markFailed(anyLong(), any());
+    }
+
+    @Test
+    void pollerDispatchesEveryDueRow() {
+        when(repository.findDue(any(), eq(50))).thenReturn(List.of(9L));
+        when(gateway.send(any())).thenReturn(SendResult.SENT);
+        service.sendDue();
+        verify(repository).markSent(eq(9L), any());
     }
 
     @Test
