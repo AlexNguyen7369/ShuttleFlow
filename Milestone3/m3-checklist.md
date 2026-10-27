@@ -79,7 +79,7 @@ already updated.
    - ERROR: `Notification gave up after 3 attempts key=BOOKED:12`, `Health check: database unreachable`
    - Never log passwords, password hashes, session IDs (a session ID is a
      login), or full request bodies. Log ids only.
-9. [ ] **Health endpoint.** `GET /health` runs `SELECT 1` through a
+9. [x] **Health endpoint.** `GET /health` runs `SELECT 1` through a
    repository. It returns `200 {"status":"UP","database":"UP"}`, or
    `503 {"status":"DOWN","database":"DOWN"}` when the query fails. Keep the
    layers: `HealthController` → `HealthService` → `HealthRepository`.
