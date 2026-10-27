@@ -7,6 +7,8 @@ import com.shuttleflow.dto.BookingRequest;
 import com.shuttleflow.dto.NotificationRequest;
 import com.shuttleflow.repository.AppointmentRepository;
 import com.shuttleflow.repository.SlotRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -18,6 +20,8 @@ import java.util.List;
 
 @Service
 public class AppointmentService {
+    private static final Logger log = LoggerFactory.getLogger(AppointmentService.class);
+
     private final AppointmentRepository appointmentRepository;
     private final SlotRepository slotRepository;
     private final SessionAuth sessionAuth;
@@ -60,20 +64,22 @@ public class AppointmentService {
             throw new ConflictException("This slot has already started.");
         }
         if (!"OPEN".equals(slot.status())) {
-            throw new BookingConflictException();
+            throw conflict(slot.slotId());
         }
 
         AppointmentDto booked;
         try {
             long appointmentId = appointmentRepository.insert(slot.slotId(), user.getUserId());
             if (slotRepository.updateStatus(slot.slotId(), "OPEN", "BOOKED") != 1) {
-                throw new BookingConflictException();
+                throw conflict(slot.slotId());
             }
             booked = appointmentRepository.findCustomerAppointment(appointmentId, user.getUserId())
                     .orElseThrow(() -> new IllegalStateException("Created appointment could not be read."));
         } catch (DataIntegrityViolationException e) {
-            throw new BookingConflictException();
+            throw conflict(slot.slotId());
         }
+        log.info("Booking created appointmentId={} slotId={} userId={}",
+                booked.getAppointmentId(), slot.slotId(), user.getUserId());
         // Outbox row joins this transaction; the actual send waits for commit.
         notificationService.enqueue(NotificationRequest.BOOKING_CONFIRMED, user.getEmail(), booked);
         return booked;
@@ -115,5 +121,12 @@ public class AppointmentService {
         AppointmentDto cancelled = appointmentRepository.findCustomerAppointment(appointmentId, user.getUserId())
                 .orElseThrow(() -> new IllegalStateException("Cancelled appointment could not be read."));
         notificationService.enqueue(NotificationRequest.BOOKING_CANCELLED, user.getEmail(), cancelled);
+        log.info("Booking cancelled appointmentId={} slotId={} userId={}",
+                appointmentId, appointment.slotId(), user.getUserId());
+    }
+
+    private static BookingConflictException conflict(long slotId) {
+        log.warn("Booking conflict slotId={}", slotId);
+        return new BookingConflictException();
     }
 }
