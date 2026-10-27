@@ -29,8 +29,9 @@
 26. 2026-10-27 — Alex Nguyen — Added GitHub Actions CI (.github/workflows/ci.yml): Temurin 17 with Maven cache and mvn -B verify on push and pull_request, with a healthchecked postgres:16 service so the race test runs; locally all 100 tests pass including the PostgreSQL race test (M3 item 15).
 27. 2026-10-27 — Alex Nguyen — Added the distribution diagram (Milestone3/distribution-diagram.svg and .png): client, scheduler layers, the booking transaction with the outbox insert, commit point, after-commit listener and poller, gateway timeout/retry/fallback, and the DTO crossing to the notification service (M3 item 16).
 28. 2026-10-27 — Alex Nguyen — Updated the README (CI badge, Docker run, /health, /metrics, /mock-notifications, the notification design, new tests), added docs/features/10-health-and-metrics.md, and refreshed the CLAUDE.md package layout (M3 item 17).
+29. 2026-10-27 — Alex Nguyen — Verified Milestone 3: 91 H2 tests plus the 10-round PostgreSQL race pass, mvn clean package builds, a live run on local PostgreSQL showed /health UP and book/cancel notifications reaching SENT with matching /metrics, and the reviewer agent returned PASS; fixed its findings (metrics counted only when the outbox row actually changes; the integration test rebuilds its context after committing deletes). Docker compose was not run because Docker is not installed (M3 item 18).
 
 ## What's next
-**Run M3 checklist item 18 verification: mvn test, mvn clean package, reviewer agent, then push so the first GitHub Actions run goes green; docker compose up still needs a machine with Docker.**
+**Produce the Milestone 3 submission: run docker compose up on a machine with Docker, then write the report PDF, record the 5+ minute code walkthrough, and zip CMPE172_Milestone3_FirstName_LastName.zip with the GitHub and video links.**
 
-**Why this is next:** it proves the milestone end to end before the report and video, which depend on the code being final.
+**Why this is next:** all code, tests, CI, diagram and docs are done; the graded deliverables and the one unverified step (Docker) are what remain.

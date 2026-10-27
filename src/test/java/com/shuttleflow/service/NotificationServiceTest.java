@@ -34,6 +34,7 @@ class NotificationServiceTest {
         gateway = mock(NotificationGateway.class);
         publisher = mock(ApplicationEventPublisher.class);
         service = new NotificationService(repository, gateway, publisher, new MetricsService(repository), 5, 60);
+        when(repository.markSent(eq(9L), any())).thenReturn(1);
         when(repository.findPending(9)).thenReturn(Optional.of(new NotificationRecord(
                 9, 57, "BOOKED:57", NotificationRequest.BOOKING_CONFIRMED, "alex@shuttleflow.com", "msg", 0)));
     }

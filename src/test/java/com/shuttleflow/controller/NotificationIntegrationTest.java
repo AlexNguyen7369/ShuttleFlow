@@ -9,6 +9,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -21,7 +22,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Not @Transactional: bookings must really commit so the after-commit listener fires. The test
  * base-url points at a refusing port, so the notification service is down for every test here.
+ * The deletes really commit, so the context is rebuilt afterwards (schema.sql + seed.sql reload).
  */
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @SpringBootTest
 @AutoConfigureMockMvc
 class NotificationIntegrationTest {

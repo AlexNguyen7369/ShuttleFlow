@@ -86,10 +86,14 @@ public class NotificationService {
                 row.idempotencyKey(), row.appointmentId());
         LocalDateTime now = LocalDateTime.now();
         SendResult result = notificationGateway.send(request);
-        switch (result) {
+        int updated = switch (result) {
             case SENT -> notificationRepository.markSent(notificationId, now);
             case PERMANENT -> notificationRepository.markFailed(notificationId, now);
             case RETRYABLE -> notificationRepository.recordFailedRound(notificationId, now, maxRounds);
+        };
+        // A racing sender (fast path vs poller) already finished this row; don't count it twice.
+        if (updated != 1) {
+            return;
         }
         if (result == SendResult.SENT) {
             metricsService.notificationSent();
