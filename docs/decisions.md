@@ -114,3 +114,35 @@ Milestone 1 itself is only the design + a read-only skeleton (`GET /`, `GET /slo
 7. **Seed data.** Seed slots use `CAST(CURRENT_DATE AS TIMESTAMP) + INTERVAL ...`
    so they are always in the future on boot; the expression is portable across
    PostgreSQL and H2.
+
+## M3 decisions — 2026-10-27
+
+1. **Transactional outbox.** `book()` and `cancel()` insert a `notifications`
+   row (`PENDING`) in the same transaction as the booking change. A rollback
+   leaves no row; a crash right after commit leaves the row for the poller.
+2. **Commit-then-notify fast path.** The service publishes an event; an
+   `@Async @TransactionalEventListener(AFTER_COMMIT)` sends it. The HTTP call
+   never runs inside the transaction (no `FOR UPDATE` lock held during network
+   I/O) and never delays the booking response.
+3. **Poller backstop.** A `@Scheduled` job (every 30s) resends `PENDING` rows
+   older than 60s, so it does not race the fast path. No crash detection is needed.
+4. **Coarse-grained gateway + DTO.** One `NotificationGateway.send` call per
+   event carries an immutable `NotificationRequest` (`recipient`, `type`,
+   `message`, `idempotencyKey`, `appointmentId`). The receiver never sees DB rows.
+   The base URL comes from `shuttleflow.notification.base-url`.
+5. **Timeouts and bounded retry.** Connect 1s, read 2s. Up to 3 attempts per
+   round with 200ms/400ms backoff, only on timeout, refused connection or 5xx.
+   A 4xx is never retried.
+6. **Dead-letter state.** A 4xx, or 5 failed rounds, marks the row `FAILED`;
+   the poller skips it. Failures never throw into the booking path.
+7. **Idempotency key.** `BOOKED:<appointmentId>` / `CANCELLED:<appointmentId>`,
+   built from the event, not payload details (a cancel-and-rebook has the same
+   details but a new appointment id). The receiver stores each key once and
+   answers success for repeats; `UNIQUE (idempotency_key)` guards the outbox.
+8. **Health.** `GET /health` runs `SELECT 1` through controller → service →
+   repository: `200 {"status":"UP","database":"UP"}` or `503` with `DOWN`.
+9. **Metrics.** Plain `AtomicLong` counters (bookings created, booking
+   conflicts, notifications sent, notification failures) plus the pending
+   outbox count at `GET /metrics`. No Actuator/Micrometer: small and explainable.
+10. **Logging.** SLF4J at INFO/WARN/ERROR with ids only. Never passwords,
+    hashes, session IDs, recipients, message bodies or request bodies.

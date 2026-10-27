@@ -13,8 +13,9 @@
 10. 2026-10-08 — Alex Nguyen — Fixed the dashboard's empty Implemented additions (stale server; now lists all M1 and M2 tasks with a stale-server warning) and added bug code snippets with the faulty lines highlighted in red, captured from the pre-fix commit.
 11. 2026-10-08 — Alex Nguyen — Removed the stale nested ShuttleFlow/ copy and organized the milestone files into Milestone1/ and Milestone2/ (assignment PDF, walkthrough and voice scripts), and pointed the dashboard at the root context.md.
 12. 2026-10-27 — Alex Nguyen — Planned Milestone 3: recorded the rederive-session outbox/poller/dead-letter design in Milestone3/m3-checklist.md, wrote Milestone3/milestone3plan.md, and added a one-commit-per-checklist-item rule to CLAUDE.md.
+13. 2026-10-27 — Alex Nguyen — Recorded the ten Milestone 3 decisions (outbox, after-commit fast path, poller, gateway DTO, timeouts/retry, dead-letter, idempotency key, /health, metrics, logging) in docs/decisions.md (M3 item 1).
 
 ## What's next
-**Implement M3 checklist item 1: record the Milestone 3 decisions (outbox + poller, timeouts/retry, idempotency key, dead-letter state, /health, metrics, no Actuator) in docs/decisions.md.**
+**Implement M3 checklist item 2: add the immutable NotificationRequest DTO and the notifications outbox table in schema.sql.**
 
-**Why this is next:** every later M3 item (DTO, gateway, outbox, health, metrics) implements these decisions, so they are written down first as the reference for code and the report.
+**Why this is next:** the mock service, gateway and outbox code all exchange NotificationRequest and read/write the notifications table.

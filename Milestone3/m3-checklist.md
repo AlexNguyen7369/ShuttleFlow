@@ -34,7 +34,7 @@ already updated.
 
 ## Sequential implementation plan
 
-1. [ ] **Record M3 decisions** in `docs/decisions.md`: commit-then-notify
+1. [x] **Record M3 decisions** in `docs/decisions.md`: commit-then-notify
    mechanism, outbox table + poller, timeout/retry values, idempotency key, fallback behavior,
    `/health` shape, chosen metric, and whether to use Actuator or plain code.
 2. [ ] **Notification DTO.** Add immutable `NotificationRequest`
