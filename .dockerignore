@@ -1,0 +1,12 @@
+target/
+data/
+.git/
+.env
+.claude/
+.rederive/
+.vibe-wise/
+Milestone*/
+docs/
+frontend/
+tools/
+*.md

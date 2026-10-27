@@ -24,8 +24,9 @@
 21. 2026-10-27 — Alex Nguyen — Added GET /health (SELECT 1 via HealthController, HealthService and HealthRepository; 200 UP / 503 DOWN with an ERROR log) and 2 tests (M3 item 9).
 22. 2026-10-27 — Alex Nguyen — Added GET /metrics with AtomicLong counters (bookings created, booking conflicts, notifications sent, notification failures) and the live pending-outbox count, plus a test (M3 item 10).
 23. 2026-10-27 — Alex Nguyen — Documented the notification-service-down failure scenario (detection, impact, recovery, crash variant) in docs/features/09-booking-notifications.md and ticked the required integration tests, which the earlier commits already cover (M3 items 11 and 12).
+24. 2026-10-27 — Alex Nguyen — Added a multi-stage Dockerfile (Maven/JDK build stage, non-root eclipse-temurin:17-jre runtime) and .dockerignore; image build not yet run because Docker is not installed on this machine (M3 item 13).
 
 ## What's next
-**Implement M3 checklist item 13: a multi-stage Dockerfile (maven:3.9-eclipse-temurin-17 build, eclipse-temurin:17-jre run) and .dockerignore.**
+**Implement M3 checklist item 14: docker-compose.yml with a healthchecked postgres:16 db and the app waiting on service_healthy, credentials from .env, plus a committed .env.example.**
 
-**Why this is next:** docker-compose in item 14 builds the app image from this Dockerfile.
+**Why this is next:** graders start the whole system with one docker compose up, and CI and the smoke test build on it.

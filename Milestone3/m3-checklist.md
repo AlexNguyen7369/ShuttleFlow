@@ -99,7 +99,7 @@ already updated.
     attempt 2, for a duplicate key that is not stored twice, and for
     `/health` UP/DOWN. Outbox tests: a committed booking writes a `PENDING`
     row, a rolled-back (409) booking writes none, and a 4xx sets `FAILED`.
-13. [ ] **Dockerfile.** Multi-stage build: `maven:3.9-eclipse-temurin-17`
+13. [x] **Dockerfile.** Multi-stage build: `maven:3.9-eclipse-temurin-17`
     builds the jar, then `eclipse-temurin:17-jre` runs it on port 8080.
     Add a `.dockerignore` (`target/`, `data/`, `.git/`).
 14. [ ] **docker-compose.yml.** Two services: `db` (`postgres:16`, with a
