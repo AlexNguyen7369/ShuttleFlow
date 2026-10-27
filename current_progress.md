@@ -31,8 +31,9 @@
 28. 2026-10-27 — Alex Nguyen — Updated the README (CI badge, Docker run, /health, /metrics, /mock-notifications, the notification design, new tests), added docs/features/10-health-and-metrics.md, and refreshed the CLAUDE.md package layout (M3 item 17).
 29. 2026-10-27 — Alex Nguyen — Verified Milestone 3: 91 H2 tests plus the 10-round PostgreSQL race pass, mvn clean package builds, a live run on local PostgreSQL showed /health UP and book/cancel notifications reaching SENT with matching /metrics, and the reviewer agent returned PASS; fixed its findings (metrics counted only when the outbox row actually changes; the integration test rebuilds its context after committing deletes). Docker compose was not run because Docker is not installed (M3 item 18).
 30. 2026-10-27 — Alex Nguyen — Fixed the first CI failure: test slot helpers looked slots up by an exact nanosecond start_time that H2 stores at microsecond precision on Linux; they now truncate with withNano(0) like the concurrency tests.
+31. 2026-10-27 — Alex Nguyen — Verified the Docker deliverable with Colima: docker compose up --build started the healthchecked postgres:16 before the app, /health returned 200 UP, a booking returned 201 and its notification was SENT on attempt 1 (/metrics matched); stack then stopped.
 
 ## What's next
-**Produce the Milestone 3 submission: run docker compose up on a machine with Docker, then write the report PDF, record the 5+ minute code walkthrough, and zip CMPE172_Milestone3_FirstName_LastName.zip with the GitHub and video links.**
+**Produce the Milestone 3 submission: write the report PDF, record the 5+ minute code walkthrough, and zip CMPE172_Milestone3_FirstName_LastName.zip with the GitHub and video links.**
 
-**Why this is next:** all code, tests, CI, diagram and docs are done; the graded deliverables and the one unverified step (Docker) are what remain.
+**Why this is next:** all code, tests, CI (green), Docker run, diagram and docs are verified; only the graded deliverables remain.
