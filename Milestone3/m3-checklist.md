@@ -87,12 +87,12 @@ already updated.
     (409s), notification failures, or average booking latency. Expose it
     (e.g. `GET /metrics` or inside `/health`). Plain counters
     (`AtomicLong`) are enough. Actuator + Micrometer is the other option.
-11. [ ] **Failure scenario + recovery.** Document one scenario: the
+11. [x] **Failure scenario + recovery.** Document one scenario: the
     notification service is down or slow. Recovery: bounded retries, then
     fallback. The booking is still committed, and the failure is logged and
     counted. The outbox row stays `PENDING`, and the poller resends it once
     the service is back (required, not optional).
-12. [ ] **Integration test (required).** Point
+12. [x] **Integration test (required).** Point
     `shuttleflow.notification.base-url` at a dead port or a stub that times
     out. Book a slot and assert `201`, plus one active appointment in the DB.
     Add tests for cancel with the service down, for a retry that succeeds on
