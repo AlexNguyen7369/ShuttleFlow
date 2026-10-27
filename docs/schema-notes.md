@@ -81,7 +81,18 @@ Consequences to keep in mind:
 
 ## Not modelled yet
 
-`games`, `scores`, `shots` (head-to-head tracking) are intentionally out of the M1 schema. No table for confirmation notifications, metrics/logs, or the RAG knowledge base yet.
+`games`, `scores`, `shots` (head-to-head tracking) are intentionally out of the M1 schema. No table for metrics/logs (counters live in memory), or the RAG knowledge base yet.
+
+## Notifications outbox (M3, 2026-10-27)
+
+`notifications` is a sixth table added for Milestone 3; the five spec tables are unchanged.
+One row per notification owed, inserted in the same transaction as the booking or cancel.
+
+- `idempotency_key` `UNIQUE`: `BOOKED:<appointmentId>` / `CANCELLED:<appointmentId>`.
+- `type` `CHECK IN ('BOOKING_CONFIRMED', 'BOOKING_CANCELLED')`.
+- `status` `CHECK IN ('PENDING', 'SENT', 'FAILED')`; `FAILED` is the dead-letter state.
+- `attempts` counts poller rounds; `last_attempt_at` records the latest one.
+- FK `appointment_id` → `appointments`.
 
 ## Diagrams
 
