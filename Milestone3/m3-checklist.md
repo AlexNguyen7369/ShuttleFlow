@@ -117,7 +117,7 @@ already updated.
     `NotificationGateway`) → Notification Service (`/mock-notifications`).
     Mark the timeout/retry/fallback on the arrow and the commit point before
     the call.
-17. [ ] **Docs.** Update README (run with Docker, `/health`, metric, CI
+17. [x] **Docs.** Update README (run with Docker, `/health`, metric, CI
     badge), `docs/decisions.md`, and `docs/features/`.
 18. [ ] **Verify.** `mvn test`, `mvn clean package`, `docker compose up`,
     a green CI run on GitHub, and a reviewer agent PASS.

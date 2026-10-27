@@ -28,8 +28,9 @@
 25. 2026-10-27 — Alex Nguyen — Added docker-compose.yml (postgres:16 with pg_isready healthcheck, app waiting on service_healthy and reaching the database at host db), a committed .env.example and .env in .gitignore; docker compose up not yet run here because Docker is not installed (M3 item 14).
 26. 2026-10-27 — Alex Nguyen — Added GitHub Actions CI (.github/workflows/ci.yml): Temurin 17 with Maven cache and mvn -B verify on push and pull_request, with a healthchecked postgres:16 service so the race test runs; locally all 100 tests pass including the PostgreSQL race test (M3 item 15).
 27. 2026-10-27 — Alex Nguyen — Added the distribution diagram (Milestone3/distribution-diagram.svg and .png): client, scheduler layers, the booking transaction with the outbox insert, commit point, after-commit listener and poller, gateway timeout/retry/fallback, and the DTO crossing to the notification service (M3 item 16).
+28. 2026-10-27 — Alex Nguyen — Updated the README (CI badge, Docker run, /health, /metrics, /mock-notifications, the notification design, new tests), added docs/features/10-health-and-metrics.md, and refreshed the CLAUDE.md package layout (M3 item 17).
 
 ## What's next
-**Implement M3 checklist item 17: update README (Docker run, /health, /metrics, CI badge) and docs/features for health and metrics.**
+**Run M3 checklist item 18 verification: mvn test, mvn clean package, reviewer agent, then push so the first GitHub Actions run goes green; docker compose up still needs a machine with Docker.**
 
-**Why this is next:** graders run the project from the README, and the docs must match the new endpoints before final verification.
+**Why this is next:** it proves the milestone end to end before the report and video, which depend on the code being final.
