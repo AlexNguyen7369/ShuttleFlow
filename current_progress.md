@@ -23,8 +23,9 @@
 20. 2026-10-27 — Alex Nguyen — Added SLF4J logging with ids only: INFO booking created/cancelled, WARN booking conflict, plus the gateway's sent/attempt-failed/gave-up lines (M3 item 8).
 21. 2026-10-27 — Alex Nguyen — Added GET /health (SELECT 1 via HealthController, HealthService and HealthRepository; 200 UP / 503 DOWN with an ERROR log) and 2 tests (M3 item 9).
 22. 2026-10-27 — Alex Nguyen — Added GET /metrics with AtomicLong counters (bookings created, booking conflicts, notifications sent, notification failures) and the live pending-outbox count, plus a test (M3 item 10).
+23. 2026-10-27 — Alex Nguyen — Documented the notification-service-down failure scenario (detection, impact, recovery, crash variant) in docs/features/09-booking-notifications.md and ticked the required integration tests, which the earlier commits already cover (M3 items 11 and 12).
 
 ## What's next
-**Implement M3 checklist items 11-12: document the notification-down failure scenario and recovery, and confirm the required integration tests cover it.**
+**Implement M3 checklist item 13: a multi-stage Dockerfile (maven:3.9-eclipse-temurin-17 build, eclipse-temurin:17-jre run) and .dockerignore.**
 
-**Why this is next:** the report's system-management section needs the failure and recovery story, and most of its tests already exist.
+**Why this is next:** docker-compose in item 14 builds the app image from this Dockerfile.
