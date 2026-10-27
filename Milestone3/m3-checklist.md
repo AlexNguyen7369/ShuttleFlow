@@ -44,7 +44,7 @@ already updated.
    `MockNotificationController` at `POST /mock-notifications`. It validates
    the DTO, logs and stores it in memory, and returns success. A repeated
    `idempotencyKey` returns success without storing it twice.
-4. [ ] **Notification client (Gateway).** Add `NotificationGateway` with one
+4. [x] **Notification client (Gateway).** Add `NotificationGateway` with one
    coarse-grained method, `send(NotificationRequest)`. It calls the mock over
    real HTTP with `RestClient` (already in `spring-boot-starter-web`). The
    base URL comes from a property (`shuttleflow.notification.base-url`).

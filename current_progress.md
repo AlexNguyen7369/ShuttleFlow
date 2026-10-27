@@ -16,8 +16,9 @@
 13. 2026-10-27 — Alex Nguyen — Recorded the ten Milestone 3 decisions (outbox, after-commit fast path, poller, gateway DTO, timeouts/retry, dead-letter, idempotency key, /health, metrics, logging) in docs/decisions.md (M3 item 1).
 14. 2026-10-27 — Alex Nguyen — Added the immutable NotificationRequest DTO and the notifications outbox table (unique idempotency_key, PENDING/SENT/FAILED status) to schema.sql and docs/schema-notes.md (M3 item 2).
 15. 2026-10-27 — Alex Nguyen — Added the mock notification service (POST /mock-notifications: 202 new, 200 repeat key stored once, 400 on blank fields) with 2 tests (M3 item 3).
+16. 2026-10-27 — Alex Nguyen — Added NotificationGateway: one RestClient POST per event to the configurable shuttleflow.notification.base-url, classifying results as SENT / RETRYABLE (5xx, refused) / PERMANENT (4xx), with 4 real-HTTP stub tests (M3 item 4).
 
 ## What's next
-**Implement M3 checklist items 4-5: NotificationGateway with RestClient, connect/read timeouts and bounded retry on timeout/refused/5xx only.**
+**Implement M3 checklist item 5: connect/read timeouts and up to 3 attempts with backoff on retryable failures in NotificationGateway.**
 
-**Why this is next:** the outbox dispatcher calls the gateway, and its SENT/RETRYABLE/PERMANENT result drives the outbox status transitions.
+**Why this is next:** without timeouts a hung service ties up the sender, and without retries a brief blip leaves every notification to the 30s poller.
