@@ -70,6 +70,12 @@ Requires JDK 17+, Maven 3.9+ and PostgreSQL (tests need no server; set `SHUTTLEF
 - Enforce data rules in the schema (constraints) as well as in code.
 - Add tests under `src/test/java/com/shuttleflow/` mirroring the main package.
 
+## Commits (one per small feature)
+
+- Commit after every small, self-contained addition. One checklist item (e.g. one item in `Milestone3/m3-checklist.md`) is one commit. Don't batch several items into one commit.
+- Each commit includes the feature's tests, and `mvn test` must pass first. Tick the matching checklist box in the same commit.
+- Standing permission: commit each finished item without asking. Pushing still needs the user's go-ahead.
+
 ## Progress tracking (required after every commit or push)
 After making a commit or push in this repo, invoke the global
 `progress-tracker` skill before touching `current_progress.md` — it is
