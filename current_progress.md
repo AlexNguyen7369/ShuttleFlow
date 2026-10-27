@@ -26,8 +26,9 @@
 23. 2026-10-27 — Alex Nguyen — Documented the notification-service-down failure scenario (detection, impact, recovery, crash variant) in docs/features/09-booking-notifications.md and ticked the required integration tests, which the earlier commits already cover (M3 items 11 and 12).
 24. 2026-10-27 — Alex Nguyen — Added a multi-stage Dockerfile (Maven/JDK build stage, non-root eclipse-temurin:17-jre runtime) and .dockerignore; image build not yet run because Docker is not installed on this machine (M3 item 13).
 25. 2026-10-27 — Alex Nguyen — Added docker-compose.yml (postgres:16 with pg_isready healthcheck, app waiting on service_healthy and reaching the database at host db), a committed .env.example and .env in .gitignore; docker compose up not yet run here because Docker is not installed (M3 item 14).
+26. 2026-10-27 — Alex Nguyen — Added GitHub Actions CI (.github/workflows/ci.yml): Temurin 17 with Maven cache and mvn -B verify on push and pull_request, with a healthchecked postgres:16 service so the race test runs; locally all 100 tests pass including the PostgreSQL race test (M3 item 15).
 
 ## What's next
-**Implement M3 checklist item 15: GitHub Actions CI running mvn -B verify on push and pull_request with a postgres:16 service for the race test.**
+**Implement M3 checklist item 16: the distribution diagram (client, scheduler layers, outbox, gateway with timeout/retry, mock notification service, commit point).**
 
-**Why this is next:** it catches broken pushes automatically and is a required Milestone 3 deliverable.
+**Why this is next:** the Milestone 3 report and video walk through this diagram, and it is a graded deliverable.

@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Real PostgreSQL so the concurrent-booking race test runs too (H2 covers the rest).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: shuttleflow_test
+          POSTGRES_USER: shuttleflow
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shuttleflow -d shuttleflow_test"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      SHUTTLEFLOW_PG_TEST_URL: jdbc:postgresql://localhost:5432/shuttleflow_test
+      SHUTTLEFLOW_PG_TEST_USER: shuttleflow
+      SHUTTLEFLOW_PG_TEST_PASSWORD: ci-only-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - run: mvn -B verify

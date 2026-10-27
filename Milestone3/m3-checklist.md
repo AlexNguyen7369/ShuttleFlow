@@ -108,7 +108,7 @@ already updated.
     credentials from env or `.env`. Never commit real secrets. Commit a
     `.env.example` with placeholder values, and add `.env` to `.gitignore`. Smoke test:
     `docker compose up` then `curl localhost:8080/health`.
-15. [ ] **GitHub Actions.** Add `.github/workflows/ci.yml`. It runs on every
+15. [x] **GitHub Actions.** Add `.github/workflows/ci.yml`. It runs on every
     `push` (and `pull_request`): `actions/setup-java` with Temurin 17 and the
     Maven cache, then `mvn -B verify`. Optional: a `postgres:16` service
     container plus `SHUTTLEFLOW_PG_TEST_URL`, so the race test also runs in CI.
