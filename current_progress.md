@@ -33,8 +33,9 @@
 30. 2026-10-27 — Alex Nguyen — Fixed the first CI failure: test slot helpers looked slots up by an exact nanosecond start_time that H2 stores at microsecond precision on Linux; they now truncate with withNano(0) like the concurrency tests.
 31. 2026-10-27 — Alex Nguyen — Verified the Docker deliverable with Colima: docker compose up --build started the healthchecked postgres:16 before the app, /health returned 200 UP, a booking returned 201 and its notification was SENT on attempt 1 (/metrics matched); stack then stopped.
 32. 2026-10-27 — Alex Nguyen — Added Milestone3/ to .gitignore (already-tracked M3 files stay tracked, same as Milestone2/) and wrote the local-only Milestone3/video_script3.md, a ~5.5-minute code walkthrough script.
+33. 2026-10-28 — Alex Nguyen — Planned Milestone 4 (Enterprise AI): wrote Milestone4/milestone4plan.md and Milestone4/m4-checklist.md covering the Gemini tool-calling chat agent with code-enforced confirm-before-write, the scheduled LLM reminder agent on the M3 outbox, SimpleVectorStore RAG over a policy file, the required agent double-booking test, and a self-check bonus.
 
 ## What's next
-**Produce the Milestone 3 submission: write the report PDF, record the walkthrough from Milestone3/video_script3.md, and zip CMPE172_Milestone3_FirstName_LastName.zip with the GitHub and video links.**
+**Record the Milestone 4 decisions in docs/decisions.md (M4 item 1): Gemini model name, Spring AI version, the ai package, per-request tools carrying the session, propose/confirm with turn check, reminder task, SimpleVectorStore and the self-check bonus.**
 
-**Why this is next:** all code, tests, CI, Docker and the script are ready; only the graded deliverables remain.
+**Why this is next:** every later M4 item (Boot upgrade, Spring AI wiring, tools, agents, RAG) builds on these choices, and the model and Spring AI version must be confirmed before the dependency changes in items 2-3.
