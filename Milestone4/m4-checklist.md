@@ -29,7 +29,7 @@ One item = one commit, with its tests, after `mvn test` passes.
    `docker-compose.yml` and a placeholder to `.env.example`. Test config sets
    a dummy key and mocks the model, so CI never calls Gemini. Never commit a
    real key.
-4. [ ] **Schema: reminder type.** Add `'APPOINTMENT_REMINDER'` to the
+4. [x] **Schema: reminder type.** Add `'APPOINTMENT_REMINDER'` to the
    `notifications.type` CHECK, to `NotificationRequest` and to
    `docs/schema-notes.md`. Seed one `BOOKED` appointment within 24h of boot.
 5. [ ] **Agent 1 read tools.** `BookingTools` (per request, holds the session):

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public final class NotificationRequest {
     public static final String BOOKING_CONFIRMED = "BOOKING_CONFIRMED";
     public static final String BOOKING_CANCELLED = "BOOKING_CANCELLED";
+    public static final String APPOINTMENT_REMINDER = "APPOINTMENT_REMINDER";
 
     private final String recipient;
     private final String type;

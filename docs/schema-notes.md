@@ -88,8 +88,8 @@ Consequences to keep in mind:
 `notifications` is a sixth table added for Milestone 3; the five spec tables are unchanged.
 One row per notification owed, inserted in the same transaction as the booking or cancel.
 
-- `idempotency_key` `UNIQUE`: `BOOKED:<appointmentId>` / `CANCELLED:<appointmentId>`.
-- `type` `CHECK IN ('BOOKING_CONFIRMED', 'BOOKING_CANCELLED')`.
+- `idempotency_key` `UNIQUE`: `BOOKED:<appointmentId>` / `CANCELLED:<appointmentId>` / `REMINDER:<appointmentId>` (M4).
+- `type` `CHECK IN ('BOOKING_CONFIRMED', 'BOOKING_CANCELLED', 'APPOINTMENT_REMINDER')`; the reminder type was added in M4 for the reminder agent.
 - `status` `CHECK IN ('PENDING', 'SENT', 'FAILED')`; `FAILED` is the dead-letter state.
 - `attempts` counts poller rounds; `last_attempt_at` records the latest one.
 - FK `appointment_id` → `appointments`.
