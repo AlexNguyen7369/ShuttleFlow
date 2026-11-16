@@ -60,6 +60,16 @@ class AiChatControllerTest {
     }
 
     @Test
+    void aReplySplitIntoSeveralPartsIsReturnedWhole() throws Exception {
+        when(chatModel.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(
+                new Generation(new AssistantMessage("Court 3 is open ")),
+                new Generation(new AssistantMessage("at 9:00.")))));
+
+        chat(login("alex@shuttleflow.com", "alex-test"), "Any courts?").andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").value("Court 3 is open at 9:00."));
+    }
+
+    @Test
     void followUpMessagesCarryTheConversationAndTheTurnAdvances() throws Exception {
         MockHttpSession alex = login("alex@shuttleflow.com", "alex-test");
         chat(alex, "Book the earliest court this week").andExpect(status().isOk());

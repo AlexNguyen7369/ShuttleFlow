@@ -53,7 +53,7 @@ One item = one commit, with its tests, after `mvn test` passes.
    session id) and `POST /ai/chat {message}` → `{reply}`. 400 when the message
    is blank or too long, 401/403 from `SessionAuth`, 503 when the AI is
    unavailable. Test with a stubbed `ChatModel`.
-9. [ ] **Smart behavior check (manual, real key).** Multi-step: "book the
+9. [x] **Smart behavior check (manual, real key).** Multi-step: "book the
    earliest open court this week" (find → propose → wait for "yes" →
    confirm). Taken slot: alternatives offered. Multi-turn: a follow-up
    ("actually make it 2pm") works. Tune the system prompt until all three
