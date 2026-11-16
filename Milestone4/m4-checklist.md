@@ -73,7 +73,7 @@ One item = one commit, with its tests, after `mvn test` passes.
     outbox). Add the `@Scheduled` job and the provider-only manual trigger
     `POST /ai/reminders/run` → `{scanned, queued, fallbacks}`. Tests: one row
     per due appointment, and a re-run adds none.
-13. [ ] **Bonus: self-check (reflection).** Before a reminder is queued,
+13. [x] **Bonus: self-check (reflection).** Before a reminder is queued,
     verify that the text names the right court/coach and start time. If not,
     or if the LLM fails or returns 429, use the template message. Add
     `remindersQueued` and `reminderFallbacks` to `/metrics`. Tests: both

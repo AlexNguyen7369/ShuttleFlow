@@ -18,12 +18,15 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -37,6 +40,8 @@ class ReminderAgentTest {
     @Autowired private MockMvc mvc;
     @MockitoBean private ChatModel chatModel;
     private long dueAppointmentId;
+    private LocalDateTime dueStart;
+    private String goodReply;
 
     @BeforeEach
     void prepare() {
@@ -44,11 +49,14 @@ class ReminderAgentTest {
         jdbc.update("DELETE FROM appointments");
         jdbc.update("DELETE FROM availability_slots");
         LocalDateTime now = LocalDateTime.now().withNano(0);
-        dueAppointmentId = appointment(now.plusHours(3), 3L, "BOOKED");   // due: Alex, in 3 hours
+        dueStart = now.plusHours(3);
+        dueAppointmentId = appointment(dueStart, 3L, "BOOKED");          // due: Alex, in 3 hours
         appointment(now.plusDays(2), 4L, "BOOKED");                       // not due: 2 days away
         appointment(now.plusHours(5), 4L, "CANCELLED");                   // not due: cancelled
         when(chatModel.getDefaultOptions()).thenReturn(ToolCallingChatOptions.builder().build());
-        reply("Hi Alex! See you at Court 3 today. Your Singles Court Rental starts soon.");
+        goodReply = "Hi Alex! Your Singles Court Rental at Court 3 starts at "
+                + dueStart.format(DateTimeFormatter.ofPattern("h:mm a", Locale.US)) + ". See you there!";
+        reply(goodReply);
     }
 
     @Test
@@ -63,7 +71,7 @@ class ReminderAgentTest {
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0)).containsEntry("IDEMPOTENCY_KEY", "REMINDER:" + dueAppointmentId)
                 .containsEntry("RECIPIENT", "alex@shuttleflow.com")
-                .containsEntry("MESSAGE", "Hi Alex! See you at Court 3 today. Your Singles Court Rental starts soon.");
+                .containsEntry("MESSAGE", goodReply);
 
         ReminderRunDto second = reminderAgent.run();
         assertThat(second.getScanned()).isZero();
@@ -84,6 +92,35 @@ class ReminderAgentTest {
     }
 
     @Test
+    void selfCheckRejectsAWrongTimeAndUsesTheTemplate() throws Exception {
+        reply("Hi Alex! Your Singles Court Rental at Court 3 starts at "
+                + dueStart.plusHours(2).format(DateTimeFormatter.ofPattern("h:mm a", Locale.US)) + ".");
+        long fallbacksBefore = metric("reminderFallbacks");
+
+        ReminderRunDto run = reminderAgent.run();
+
+        assertThat(run.getQueued()).isEqualTo(1);
+        assertThat(run.getFallbacks()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT message FROM notifications WHERE type = 'APPOINTMENT_REMINDER'", String.class))
+                .startsWith("Reminder: your Singles Court Rental at Court 3 starts ");
+        assertThat(metric("reminderFallbacks")).isEqualTo(fallbacksBefore + 1);
+    }
+
+    @Test
+    void selfCheckRejectsTheWrongCourt() {
+        reply(goodReply.replace("Court 3", "Court 7"));
+
+        assertThat(reminderAgent.run().getFallbacks()).isEqualTo(1);
+    }
+
+    @Test
+    void queuedRemindersAreCountedInMetrics() throws Exception {
+        long before = metric("remindersQueued");
+        reminderAgent.run();
+        assertThat(metric("remindersQueued")).isEqualTo(before + 1);
+    }
+
+    @Test
     void manualTriggerIsProviderOnly() throws Exception {
         mvc.perform(post("/ai/reminders/run").session(login("alex@shuttleflow.com", "alex-test")))
                 .andExpect(status().isForbidden());
@@ -95,6 +132,11 @@ class ReminderAgentTest {
                 .andExpect(jsonPath("$.queued").value(1))
                 .andExpect(jsonPath("$.fallbacks").value(0));
         assertThat(reminderCount()).isEqualTo(1);
+    }
+
+    private long metric(String name) throws Exception {
+        String json = mvc.perform(get("/metrics")).andReturn().getResponse().getContentAsString();
+        return Long.parseLong(json.replaceAll(".*\"" + name + "\":(\\d+).*", "$1"));
     }
 
     private void reply(String text) {
