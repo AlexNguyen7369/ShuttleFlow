@@ -39,7 +39,7 @@ class BookingToolsReadTest {
         slotService = mock(SlotService.class);
         appointmentService = mock(AppointmentService.class);
         session = new MockHttpSession();
-        tools = new BookingTools(slotService, appointmentService, session);
+        tools = new BookingTools(slotService, appointmentService, session, 1);
     }
 
     @Test
