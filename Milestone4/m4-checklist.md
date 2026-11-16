@@ -58,7 +58,7 @@ One item = one commit, with its tests, after `mvn test` passes.
    confirm). Taken slot: alternatives offered. Multi-turn: a follow-up
    ("actually make it 2pm") works. Tune the system prompt until all three
    pass. Save the transcripts for the report.
-10. [ ] **Knowledge source.** Hand-write
+10. [x] **Knowledge source.** Hand-write
     `src/main/resources/knowledge/shuttleflow-policies.md` (hours, booking,
     cancellation, courts, coaches, providers, equipment, contact). Every rule
     must match the real code.
