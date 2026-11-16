@@ -72,6 +72,31 @@ public class AppointmentRepository {
             ORDER BY s.start_time ASC, a.appointment_id ASC
             """;
 
+    // M4 reminder agent: booked, starting inside the window, and not reminded yet (one reminder per appointment).
+    private static final String FIND_DUE_FOR_REMINDER_SQL = """
+            SELECT a.appointment_id, u.full_name AS customer_name, u.email AS customer_email,
+                   p.name AS provider_name, sv.name AS service_name, s.start_time, s.end_time
+            FROM appointments a
+            JOIN users u ON u.user_id = a.user_id
+            JOIN availability_slots s ON s.slot_id = a.slot_id
+            JOIN providers p ON p.provider_id = s.provider_id
+            JOIN services sv ON sv.service_id = s.service_id
+            WHERE a.status = 'BOOKED' AND s.start_time > ? AND s.start_time <= ?
+              AND NOT EXISTS (SELECT 1 FROM notifications n
+                              WHERE n.appointment_id = a.appointment_id AND n.type = 'APPOINTMENT_REMINDER')
+            ORDER BY s.start_time ASC, a.appointment_id ASC
+            LIMIT ?
+            """;
+
+    private static final RowMapper<DueReminder> DUE_REMINDER_MAPPER = (rs, rowNum) -> new DueReminder(
+            rs.getLong("appointment_id"),
+            rs.getString("customer_name"),
+            rs.getString("customer_email"),
+            rs.getString("provider_name"),
+            rs.getString("service_name"),
+            rs.getTimestamp("start_time").toLocalDateTime(),
+            rs.getTimestamp("end_time").toLocalDateTime());
+
     private static final RowMapper<AppointmentDto> APPOINTMENT_MAPPER = (rs, rowNum) -> new AppointmentDto(
             rs.getLong("appointment_id"),
             rs.getLong("slot_id"),
@@ -155,6 +180,13 @@ public class AppointmentRepository {
     public List<ProviderAppointmentDto> findProviderAppointments(long providerId) {
         return jdbcTemplate.query(FIND_PROVIDER_APPOINTMENTS_SQL, PROVIDER_APPOINTMENT_MAPPER, providerId);
     }
+
+    public List<DueReminder> findDueForReminder(LocalDateTime from, LocalDateTime to, int limit) {
+        return jdbcTemplate.query(FIND_DUE_FOR_REMINDER_SQL, DUE_REMINDER_MAPPER, from, to, limit);
+    }
+
+    public record DueReminder(long appointmentId, String customerName, String customerEmail, String providerName,
+                              String serviceName, LocalDateTime startTime, LocalDateTime endTime) { }
 
     public record AppointmentRecord(long appointmentId, long slotId, long userId, String status,
                                     LocalDateTime startTime, long providerId) { }

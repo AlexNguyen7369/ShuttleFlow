@@ -9,6 +9,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -56,6 +57,23 @@ public class NotificationService {
                 + appointment.getStartTime().format(WHEN) + (confirmed ? " is booked." : " was cancelled.");
         long notificationId = notificationRepository.insert(appointment.getAppointmentId(), key, type, recipient, message);
         eventPublisher.publishEvent(new NotificationQueuedEvent(notificationId));
+    }
+
+    /**
+     * Queues one reminder in its own transaction; the M3 after-commit send, poller, retry and
+     * dead-letter rules then apply unchanged. A second reminder for the same appointment violates
+     * the UNIQUE idempotency key, so a duplicate can never be queued.
+     */
+    @Transactional
+    public void enqueueReminder(long appointmentId, String recipient, String message) {
+        long notificationId = notificationRepository.insert(appointmentId, "REMINDER:" + appointmentId,
+                NotificationRequest.APPOINTMENT_REMINDER, recipient, message);
+        eventPublisher.publishEvent(new NotificationQueuedEvent(notificationId));
+    }
+
+    /** The plain M3-style reminder text, used when the AI text is missing or fails the self-check. */
+    public static String reminderTemplate(String serviceName, String providerName, LocalDateTime startTime) {
+        return "Reminder: your " + serviceName + " at " + providerName + " starts " + startTime.format(WHEN) + ".";
     }
 
     @Async
