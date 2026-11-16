@@ -4,7 +4,7 @@ Badminton court and coach booking system (CMPE 172 project). Requirements: `docs
 
 ## Stack
 
-- Java 17, Spring Boot 3.3.4 (`spring-boot-starter-web`, `spring-boot-starter-jdbc`), Maven
+- Java 17, Spring Boot 3.5.16 (`spring-boot-starter-web`, `spring-boot-starter-jdbc`), Maven
 - SQL via `JdbcTemplate` — no ORM
 - PostgreSQL at runtime (`application.properties`); in-memory H2 (PostgreSQL mode) for tests only. One `schema.sql` serves both, so keep SQL standard/portable
 - Frontend: dependency-free static HTML/CSS/JS in `frontend/` (served on :5173, calls the API with the session cookie)

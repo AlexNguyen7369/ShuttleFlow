@@ -5,7 +5,7 @@ ShuttleFlow is a CMPE 172 badminton court and coach booking system. This file is
 ## Repository and stack
 
 - Run commands from this directory, the Maven project root.
-- Java 17 and Spring Boot 3.3.4.
+- Java 17 and Spring Boot 3.5.16.
 - Maven build; use `mvn test` for verification.
 - JDBC through `JdbcTemplate`; do not add JPA, Hibernate, Spring Data, or another ORM.
 - PostgreSQL is the runtime database; in-memory H2 is used only by tests. One portable `schema.sql` serves both, so keep SQL standard.
