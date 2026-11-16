@@ -13,7 +13,7 @@ Badminton players and coaches currently juggle group chats and spreadsheets to b
 3. **Analyze** — shot-level data and computer vision turn logged matches into real stats (shot placement, rally length, win patterns).
 4. **Assist** — a conversational agent books slots for you ("book me singles Saturday afternoon"), an autonomous agent fills cancelled slots from a waitlist, and a grounded Q&A assistant answers rules/facility questions from a small knowledge base.
 
-This repo currently implements stage 1, built as the required project for CMPE 172 (Enterprise Software Platforms).
+This repo implements stage 1 plus the Milestone 4 AI layer (stage 4: a booking chat agent, a scheduled reminder agent and policy Q&A), built as the required project for CMPE 172 (Enterprise Software Platforms).
 
 ## Roadmap
 
@@ -27,7 +27,8 @@ This repo currently implements stage 1, built as the required project for CMPE 1
 
 ## Tech stack
 
-- **Backend:** Java 17, Spring Boot 3.3 (`spring-boot-starter-web` + `spring-boot-starter-jdbc`) — no ORM, raw SQL via `JdbcTemplate`
+- **Backend:** Java 17, Spring Boot 3.5 (`spring-boot-starter-web` + `spring-boot-starter-jdbc`) — no ORM, raw SQL via `JdbcTemplate`
+- **AI:** Spring AI 1.1.8 with the Gemini API free tier (`gemini-3.5-flash-lite` chat, `gemini-embedding-001` embeddings) and an in-memory `SimpleVectorStore`
 - **Database:** PostgreSQL at runtime; H2 is test-only infrastructure with an in-memory test profile
 - **Frontend:** dependency-free static HTML/CSS/JavaScript under `frontend/`
 - **Architecture:** Front Controller (Spring's `DispatcherServlet`) routing to `@RestController` → `@Service` → `@Repository` → DTO layers
@@ -37,13 +38,14 @@ This repo currently implements stage 1, built as the required project for CMPE 1
 - JDK 17+
 - Maven 3.9+
 - PostgreSQL 14+ running locally (runtime database; tests use in-memory H2 and need no server)
+- Optional: a free Gemini API key from https://aistudio.google.com/apikey for the AI features (tests never need it)
 
 ## Run
 
 ### With Docker (no local Java, Maven or PostgreSQL needed)
 
 ```bash
-cp .env.example .env          # choose DB_USERNAME / DB_PASSWORD; .env is never committed
+cp .env.example .env          # choose DB_USERNAME / DB_PASSWORD, add GEMINI_API_KEY; .env is never committed
 docker compose up --build     # PostgreSQL first (healthchecked), then the app on :8080
 curl localhost:8080/health    # {"status":"UP","database":"UP"}
 ```
@@ -64,6 +66,7 @@ createdb -O shuttleflow shuttleflow
 Then start the API and the browser client in two terminals:
 
 ```bash
+export GEMINI_API_KEY=...                             # optional: enables the AI features
 mvn spring-boot:run                                   # API on http://localhost:8080
 python3 -m http.server 5173 --directory frontend      # UI on http://localhost:5173
 ```
@@ -105,6 +108,9 @@ These passwords are for local/test fixtures only, not deployment credentials.
 | `GET /health` | anyone | `200` `{"status":"UP","database":"UP"}` | `503` DOWN when the DB is unreachable |
 | `GET /metrics` | anyone | `200` booking/notification counters + pending outbox count | — |
 | `POST /mock-notifications` | notification boundary | `202` new key, `200` repeat key | `400` |
+| `POST /ai/chat` `{message}` | customer | `200` `{reply}` from the booking agent | `400`, `401`, `403`, `503` |
+| `POST /ai/ask` `{question}` | signed in | `200` `{answer, sources}` grounded in the policy file | `400`, `401`, `503` |
+| `POST /ai/reminders/run` | provider | `200` `{scanned, queued, fallbacks}` | `401`, `403` |
 
 Every error body is `{"error": "..."}` with no stack trace, SQL, or credential
 detail (`ApiExceptionHandler`). Unknown routes keep their real `404`/`405`/`415`.
@@ -186,18 +192,46 @@ the losing request's outcome is final because the slot is taken.
 See `docs/features/09-booking-notifications.md` (with the failure scenario) and
 `Milestone3/distribution-diagram.svg`.
 
+### AI features (Milestone 4)
+
+- **Booking chat agent** (`POST /ai/chat`). Gemini calls tools that wrap the
+  existing services: `findOpenSlots`, `listMyAppointments`, `proposeBooking` /
+  `confirmBooking`, `proposeCancel` / `confirmCancel` and `lookupPolicy`. The
+  tools are built per request with the caller's session, so the agent acts as
+  the logged-in customer and keeps every RBAC, `FOR UPDATE` and
+  `UNIQUE (active_slot_id)` rule. Writes are confirm-before-write in code: a
+  confirm only runs for a proposal from an earlier message. Conversation memory
+  is keyed by a random id in the session.
+- **Reminder agent** (autonomous). Every 15 minutes it finds booked appointments
+  starting within 24 hours without a reminder, has Gemini write one, and queues
+  it in the M3 outbox (`REMINDER:<id>`), which sends it to the notification
+  service. A self-check (bonus) rejects text that names the wrong court/coach or
+  time and uses a template instead, as does any LLM error or rate limit.
+- **Policy Q&A** (`POST /ai/ask`). `src/main/resources/knowledge/shuttleflow-policies.md`
+  is split by section, embedded at startup into `SimpleVectorStore`, and answers
+  use only the top 3 sections, which are returned as `sources`.
+- **No key?** The app still starts; the AI endpoints return `503` and reminders
+  use the template.
+
+Demo: sign in as `alex@shuttleflow.com`, open **Assistant**, send "Book the
+earliest open court this week", then "yes" to confirm; ask "Can I cancel a
+booking?" in the policy box. Sign in as the court manager and press **Run
+reminders now**; `GET /metrics` shows `remindersQueued`. Details:
+`docs/features/11-ai-chat-agent.md`, `12-reminder-agent.md`, `13-policy-qa.md`.
+
 ### Browser client
 
 `frontend/` is a dependency-free HTML/CSS/JS client: home, login (customer or
 provider), browse/filter/paginate, a booking confirmation dialog, my bookings
-(upcoming/history) with cancellation, and the provider workspace (service
-picker, create/remove availability, booked appointments). It calls the API
+(upcoming/history) with cancellation, the provider workspace (service
+picker, create/remove availability, booked appointments, run reminders), and
+the AI assistant (booking chat and policy questions). It calls the API
 with `credentials: "include"`; `CorsConfig` allows its origin with cookies.
 
 ## Testing
 
 ```bash
-mvn test                       # 91 tests on in-memory H2 (no server needed)
+mvn test                       # 132 tests on in-memory H2 (no server or Gemini key needed)
 mvn clean package              # build target/shuttleflow-0.1.0.jar
 
 # Also run the 8-thread same-slot race 10 times against real PostgreSQL:
@@ -220,6 +254,12 @@ SHUTTLEFLOW_PG_TEST_URL=jdbc:postgresql://localhost:5432/shuttleflow_test mvn te
 | `NotificationServiceTest` | Outbox key/message, status transitions, poller dispatch |
 | `MockNotificationControllerTest` | `202` new key, `200` repeat stored once, `400` blank fields |
 | `HealthControllerTest`, `MetricsControllerTest` | `/health` UP `200` / DOWN `503`; booking and conflict counters |
+| `BookingToolsReadTest`, `BookingToolsWriteTest` | Agent tools: sorting/capping, errors as text, same-turn confirm refused, one confirm per proposal |
+| `AgentDoubleBookingTest` | Required M4 test: two sessions propose and confirm one slot through the agent tools, one books, one gets "Court is already booked."; 8-thread race; provider refused (also on PostgreSQL) |
+| `AiChatControllerTest` | `/ai/chat` with a stubbed model: tools offered, multi-turn memory, `400/401/403/503` |
+| `KnowledgeServiceTest`, `AiAskControllerTest`, `PolicyFileTest` | RAG retrieval and grounding with offline embeddings; policy file matches the seeded prices |
+| `ReminderAgentTest`, `ReminderSelfCheckTest` | One reminder per due appointment, none on re-run, template fallbacks, self-check, provider-only trigger, metrics |
+| `GeminiConfigTest`, `ReminderSchemaTest` | AI beans start with a dummy key and no Vertex settings; reminder type and seeded due appointment |
 
 GitHub Actions (`.github/workflows/ci.yml`) runs `mvn -B verify` on every push
 and pull request, with a `postgres:16` service so the race test runs too.
@@ -234,10 +274,12 @@ src/main/java/com/shuttleflow/
   dto/          immutable request/response objects
   auth/         UserSession (identity in the HTTP session) + SessionAuth (401/403 guards)
   config/       PasswordConfig (BCrypt), CorsConfig (frontend origin + cookies)
+  ai/           BookingTools (agent tools), ChatAgentService, ReminderAgent, KnowledgeService (RAG)
 src/main/resources/
   application.properties   PostgreSQL datasource, sql.init, CORS origins, notification timeouts/retry/poller
   schema.sql               one portable schema for PostgreSQL and H2, incl. the double-booking UNIQUE key and notifications outbox
-  seed.sql                 4 users, 2 providers, 3 services, 7 future slots (relative to boot day)
+  seed.sql                 4 users, 2 providers, 3 services, 7 open future slots + 1 booked appointment 6h after boot
+  knowledge/               shuttleflow-policies.md, the RAG knowledge source
 src/test/                  unit, integration, and concurrency tests (H2 profile; optional PostgreSQL race)
 frontend/                  index.html + src/app.js + src/styles.css
 docs/                      decisions, schema notes, feature specs 01-10

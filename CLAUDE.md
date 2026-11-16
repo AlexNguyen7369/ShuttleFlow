@@ -32,16 +32,18 @@ docs/                                   requirements PDF + decisions.md, schema-
 pom.xml
 src/main/java/com/shuttleflow/
 ├── ShuttleflowApplication.java         entry point
-├── controller/                         @RestController — HTTP in, DTO out (Home, Slot, Auth, Appointment, Provider, Health, Metrics, MockNotification) + ApiExceptionHandler
+├── controller/                         @RestController — HTTP in, DTO out (Home, Slot, Auth, Appointment, Provider, Health, Metrics, MockNotification, Ai) + ApiExceptionHandler
 ├── service/                            @Service — business rules, RBAC, transactions (Home, Slot, Auth, Appointment, Provider, Notification outbox + Gateway, Health, Metrics) + exceptions
 ├── repository/                         @Repository — JdbcTemplate + RowMapper (Slot, User, Appointment, Provider, Notification, Health)
 ├── dto/                                immutable request/response types
+├── ai/                                 M4: BookingTools (agent tools), ChatAgentService, ReminderAgent, KnowledgeService (RAG)
 ├── auth/                               UserSession (session identity) + SessionAuth (401/403 guards)
 └── config/                             PasswordConfig (BCrypt), CorsConfig
 src/main/resources/
-├── application.properties              datasource + sql.init
+├── application.properties              datasource + sql.init + Gemini (api-key only)
 ├── schema.sql                          DDL, drops and recreates tables on every boot
-└── seed.sql                            sample data
+├── seed.sql                            sample data
+└── knowledge/shuttleflow-policies.md   RAG knowledge source
 src/test/java/com/shuttleflow/          tests mirroring the main package
 ```
 
