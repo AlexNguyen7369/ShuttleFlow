@@ -22,7 +22,7 @@ One item = one commit, with its tests, after `mvn test` passes.
    reminder task, `SimpleVectorStore`, bonus = self-check.
 2. [x] **Upgrade Spring Boot** 3.3.4 → latest 3.5.x (Spring AI's Boot 3 line
    needs 3.4+). No AI code yet; the full suite stays green.
-3. [ ] **Add Spring AI + Gemini.** Import `spring-ai-bom`, add the Google GenAI
+3. [x] **Add Spring AI + Gemini.** Import `spring-ai-bom`, add the Google GenAI
    chat and embedding starters, and set only
    `spring.ai.google.genai.api-key=${GEMINI_API_KEY:}` plus the model. No
    `project-id` and no `location`. Add `GEMINI_API_KEY` to
