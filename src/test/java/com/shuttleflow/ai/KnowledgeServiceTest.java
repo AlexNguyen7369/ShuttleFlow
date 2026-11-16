@@ -17,6 +17,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.mock.web.MockHttpSession;
 
 import java.util.List;
@@ -79,6 +80,15 @@ class KnowledgeServiceTest {
     void lookupPolicyToolReturnsTheSectionText() {
         assertThat(knowledge.lookupPolicy("how much is a private coaching session price"))
                 .contains("Private Coaching Session | Coach Kim | 60 minutes | 1 | $40.00");
+    }
+
+    @Test
+    void lookupPolicyReportsAnEmbeddingFailureAsText() {
+        EmbeddingModel broken = mock(EmbeddingModel.class);
+        when(broken.embed(any(Document.class))).thenThrow(new RuntimeException("429"));
+        KnowledgeService failing = new KnowledgeService(broken, ChatClient.builder(chatModel), new SessionAuth(), false);
+
+        assertThat(failing.lookupPolicy("hours?")).isEqualTo("Policy lookup is unavailable right now.");
     }
 
     @Test

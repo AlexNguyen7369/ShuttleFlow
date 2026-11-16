@@ -14,6 +14,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.WebUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -101,10 +102,13 @@ public class ChatAgentService {
         }
     }
 
+    /** Atomic per session, so two concurrent messages can never share a turn number. */
     private static int nextTurn(HttpSession session) {
-        int turn = session.getAttribute(TURN_KEY) instanceof Integer previous ? previous + 1 : 1;
-        session.setAttribute(TURN_KEY, turn);
-        return turn;
+        synchronized (WebUtils.getSessionMutex(session)) {
+            int turn = session.getAttribute(TURN_KEY) instanceof Integer previous ? previous + 1 : 1;
+            session.setAttribute(TURN_KEY, turn);
+            return turn;
+        }
     }
 
     private static String conversationId(HttpSession session) {

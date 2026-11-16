@@ -170,8 +170,9 @@ Milestone 1 itself is only the design + a read-only skeleton (`GET /`, `GET /slo
    never a tool argument, so the model cannot act as another user.
 6. **Confirm-before-write in code.** Writes are split into `proposeX` and
    `confirmX` tools. `propose` stores a pending action tagged with the chat
-   turn number; `confirm` runs only for a pending action from an earlier
-   turn, so a human message always sits between propose and commit.
+   turn number; `confirm` runs only for a pending action from the
+   immediately previous turn, so the user's latest message is the reply to
+   that proposal; older proposals expire.
 7. **Reminder agent (autonomous task).** A `@Scheduled` job finds `BOOKED`
    appointments starting within 24h, has the LLM write a reminder and queues
    it through `NotificationService` as `APPOINTMENT_REMINDER` with key

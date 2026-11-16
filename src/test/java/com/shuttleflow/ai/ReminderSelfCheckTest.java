@@ -30,5 +30,15 @@ class ReminderSelfCheckTest {
         assertThat(ReminderAgent.passesSelfCheck("Coach Kim at 9:00 AM.", at(9, 0))).isFalse();
         assertThat(ReminderAgent.passesSelfCheck("Hi [name], Court 3 at 9:00 AM.", at(9, 0))).isFalse();
         assertThat(ReminderAgent.passesSelfCheck("Court 3 at 9:30 AM.", at(9, 0))).isFalse();
+        assertThat(ReminderAgent.passesSelfCheck("Court 3 at https://example.com 9:00 AM.", at(9, 0))).isFalse();
+    }
+
+    @Test
+    void aWrongHourIsNotAcceptedAsASubstringOfTheRightOne() {
+        assertThat(ReminderAgent.passesSelfCheck("Court 3 at 11:00 PM.", at(13, 0))).isFalse();
+        assertThat(ReminderAgent.passesSelfCheck("Court 3 at 11pm.", at(13, 0))).isFalse();
+        assertThat(ReminderAgent.passesSelfCheck("Court 3 at 12pm.", at(14, 0))).isFalse();
+        assertThat(ReminderAgent.passesSelfCheck("Court 3 at 11am.", at(1, 0))).isFalse();
+        assertThat(ReminderAgent.passesSelfCheck("Court 3 at 1:00 PM.", at(13, 0))).isTrue();
     }
 }

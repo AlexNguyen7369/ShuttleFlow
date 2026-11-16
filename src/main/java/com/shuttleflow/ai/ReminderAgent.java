@@ -19,6 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Agent 2: runs on a timer, not a prompt. Finds booked appointments starting within 24 hours that
@@ -104,11 +105,11 @@ public class ReminderAgent {
     /**
      * Bonus (reflection): an LLM can name the wrong court or time, so the text is checked against the
      * database record before it is sent. It must name the provider and state the start time; an
-     * unfilled placeholder like "[name]" also fails.
+     * unfilled placeholder like "[name]" or a link also fails.
      */
     static boolean passesSelfCheck(String text, DueReminder reminder) {
         String normalized = text.toLowerCase(Locale.US).replace(".", "").replace(" ", "");
-        if (text.isBlank() || text.contains("[") || text.contains("{")
+        if (text.isBlank() || text.contains("[") || text.contains("{") || normalized.contains("http")
                 || !normalized.contains(reminder.providerName().toLowerCase(Locale.US).replace(" ", ""))) {
             return false;
         }
@@ -121,7 +122,9 @@ public class ReminderAgent {
         if (start.getMinute() == 0) {
             accepted.add(hour12 + ampm);                                         // 9am
         }
-        return accepted.stream().anyMatch(normalized::contains);
+        // Digit boundaries, so "1:00pm" is not found inside "11:00pm" nor "1am" inside "11am".
+        return accepted.stream().anyMatch(time ->
+                Pattern.compile("(?<![0-9])" + Pattern.quote(time) + "(?![0-9])").matcher(normalized).find());
     }
 
     /** The LLM's reminder, or null when it fails or returns something unusable. */

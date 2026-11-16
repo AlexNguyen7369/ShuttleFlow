@@ -200,7 +200,8 @@ See `docs/features/09-booking-notifications.md` (with the failure scenario) and
   tools are built per request with the caller's session, so the agent acts as
   the logged-in customer and keeps every RBAC, `FOR UPDATE` and
   `UNIQUE (active_slot_id)` rule. Writes are confirm-before-write in code: a
-  confirm only runs for a proposal from an earlier message. Conversation memory
+  confirm only runs for a proposal made just before the user's latest message,
+  and an older proposal expires. Conversation memory
   is keyed by a random id in the session.
 - **Reminder agent** (autonomous). Every 15 minutes it finds booked appointments
   starting within 24 hours without a reminder, has Gemini write one, and queues
