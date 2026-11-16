@@ -83,7 +83,7 @@ One item = one commit, with its tests, after `mvn test` passes.
 15. [x] **Docs.** README (AI setup, `GEMINI_API_KEY`, endpoints, demo
     steps), `docs/features/11-ai-chat-agent.md`, `12-reminder-agent.md`,
     `13-policy-qa.md`, and the CLAUDE.md package layout (`ai/`).
-16. [ ] **Verify.** `mvn test`, `mvn clean package`, `docker compose up` with
+16. [x] **Verify.** `mvn test`, `mvn clean package`, `docker compose up` with
     a real key: chat books after confirmation, `/ai/ask` answers grounded,
     `/ai/reminders/run` sends to `/mock-notifications`. CI green, reviewer
     agent PASS, and `git log -p | grep -i "AIza"` finds no leaked key.
