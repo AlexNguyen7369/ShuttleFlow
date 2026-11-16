@@ -23,5 +23,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/shuttleflow
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
+      # Free Google AI Studio key; unset still boots, only the AI endpoints fail.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-not-set}
     ports:
       - "8080:8080"
