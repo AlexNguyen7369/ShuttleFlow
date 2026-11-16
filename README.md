@@ -184,7 +184,7 @@ the losing request's outcome is final because the slot is taken.
   - Logs carry ids only, never passwords, session IDs or message bodies.
 
 See `docs/features/09-booking-notifications.md` (with the failure scenario) and
-`Milestone3/distribution-diagram.png`.
+`Milestone3/distribution-diagram.svg`.
 
 ### Browser client
 
