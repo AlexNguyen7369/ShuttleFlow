@@ -47,8 +47,9 @@
 44. 2026-11-16 — Alex Nguyen — Added RAG: KnowledgeService splits the policy file into one document per section, embeds it into SimpleVectorStore at startup (property-gated, retried on first question if it fails), answers POST /ai/ask {question} → {answer, sources} only from retrieved context, and serves the agent's lookupPolicy tool; tested offline with a keyword embedding model; 124 tests pass (M4 item 11).
 45. 2026-11-16 — Alex Nguyen — Added Agent 2, the reminder agent: AppointmentRepository.findDueForReminder, NotificationService.enqueueReminder (key REMINDER:<id>, own transaction, M3 outbox send), ReminderAgent with a 15-minute @Scheduled run and LLM-written reminders falling back to a template, and the provider-only POST /ai/reminders/run → {scanned, queued, fallbacks}, plus ReminderAgentTest; 127 tests pass (M4 item 12).
 46. 2026-11-16 — Alex Nguyen — Added the self-check bonus: ReminderAgent checks that the LLM text names the right court or coach and the exact start time (12h or 24h) with no placeholders, falling back to the template otherwise, and /metrics now reports remindersQueued and reminderFallbacks; tests cover the wrong-time, wrong-court and LLM-failure fallbacks; 132 tests pass (M4 item 13).
+47. 2026-11-16 — Alex Nguyen — Added the frontend Assistant section (booking chat on /ai/chat, policy questions with sources on /ai/ask) and a provider "Run reminders now" button; smoke-tested the running app without a key: chat and ask return 503, the provider run queued one template reminder that the M3 outbox delivered (SENT), and a re-run queued none (M4 item 14).
 
 ## What's next
-**Add the frontend chat panel: a dependency-free chat box calling /ai/chat and an "Ask policy" box calling /ai/ask in frontend/, for the demo (M4 item 14).**
+**Write the M4 docs: README (AI setup, GEMINI_API_KEY, endpoints, demo steps), docs/features/11-ai-chat-agent.md, 12-reminder-agent.md, 13-policy-qa.md, and the ai/ package in the CLAUDE.md layout (M4 item 15).**
 
-**Why this is next:** all AI endpoints now exist, and the demo and walkthrough video need a way to use them from the browser; the docs (item 15) then describe the finished UI.
+**Why this is next:** all M4 code is in place, and the report, video and final verification (item 16) need accurate setup and endpoint docs; item 9 still waits for the user's Gemini key.

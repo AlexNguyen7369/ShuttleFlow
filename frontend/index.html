@@ -14,6 +14,7 @@
         <a href="#browse">Browse</a>
         <a href="#appointments" data-role="CUSTOMER">My bookings</a>
         <a href="#provider" data-role="PROVIDER">Provider</a>
+        <a href="#assistant">Assistant</a>
         <a href="#login" id="login-link">Sign in</a>
       </nav>
       <span id="identity" class="muted">Not signed in</span>
@@ -104,9 +105,44 @@
               <p id="remove-message" class="muted" role="status"></p>
             </div>
           </div>
+          <div class="stack">
+            <div class="card">
+              <h3>Booked appointments</h3>
+              <div id="provider-appointments"></div>
+            </div>
+            <div class="card">
+              <h3>Reminder agent</h3>
+              <p class="muted small">Runs every 15 minutes; run it now to remind customers whose appointments start within 24 hours.</p>
+              <button id="run-reminders" type="button">Run reminders now</button>
+              <p id="reminder-message" class="muted" role="status"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI assistant: chat agent (POST /ai/chat) and policy Q&A (POST /ai/ask) -->
+      <section id="assistant" class="view">
+        <div class="section-head">
+          <div><p class="eyebrow">AI assistant</p><h2>Book by chat or ask a question</h2></div>
+        </div>
+        <div class="provider-grid">
           <div class="card">
-            <h3>Booked appointments</h3>
-            <div id="provider-appointments"></div>
+            <h3>Booking assistant</h3>
+            <p class="muted small">Customers only. It always asks you to confirm before it books or cancels.</p>
+            <div id="chat-log" class="chat-log" aria-live="polite"></div>
+            <form id="chat-form" class="chat-form">
+              <input id="chat-input" maxlength="1000" placeholder="e.g. Book the earliest open court this week" aria-label="Message" required />
+              <button class="button">Send</button>
+            </form>
+          </div>
+          <div class="card">
+            <h3>Ask about our policies</h3>
+            <form id="ask-form">
+              <input id="ask-input" maxlength="500" placeholder="e.g. Can I cancel a booking?" aria-label="Question" required />
+              <button class="button">Ask</button>
+            </form>
+            <p id="ask-answer" class="answer"></p>
+            <p id="ask-sources" class="muted small"></p>
           </div>
         </div>
       </section>

@@ -8,6 +8,12 @@ It provides home, login, slot browsing/filtering, booking, booking confirmation
 through the appointments view, customer cancellation, provider availability,
 and provider appointment views.
 
+Milestone 4 adds the Assistant section: a booking chat (`POST /ai/chat`,
+customers only, confirms before every booking or cancellation), a policy
+question box (`POST /ai/ask`, shows the policy sections used), and a
+"Run reminders now" button in the provider workspace
+(`POST /ai/reminders/run`).
+
 The UI must call the existing/new REST controllers and preserve the flow:
 
 ```text
