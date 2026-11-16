@@ -48,7 +48,7 @@ One item = one commit, with its tests, after `mvn test` passes.
    Add a threaded variant that also runs on PostgreSQL when
    `SHUTTLEFLOW_PG_TEST_URL` is set. Also test that a same-turn confirm is
    refused and that a provider session is refused.
-8. [ ] **Agent 1 endpoint.** `ChatAgentService` (ChatClient + system prompt +
+8. [x] **Agent 1 endpoint.** `ChatAgentService` (ChatClient + system prompt +
    `MessageChatMemoryAdvisor` keyed by a random UUID in the session, never the
    session id) and `POST /ai/chat {message}` → `{reply}`. 400 when the message
    is blank or too long, 401/403 from `SessionAuth`, 503 when the AI is
