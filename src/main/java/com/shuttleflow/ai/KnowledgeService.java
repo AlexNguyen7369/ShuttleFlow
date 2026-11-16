@@ -86,12 +86,12 @@ public class KnowledgeService {
         }
         try {
             List<Document> sections = search(question);
-            String answer = chatClient.prompt()
+            String answer = AiText.of(chatClient.prompt()
                     .system(ANSWER_PROMPT)
                     .user("Policy context:\n" + context(sections) + "\n\nQuestion: " + question)
                     .call()
-                    .content();
-            return new AskResponseDto(answer == null ? "" : answer, titles(sections));
+                    .chatResponse());
+            return new AskResponseDto(answer, titles(sections));
         } catch (RuntimeException e) {
             log.warn("Policy answer failed: {}", e.getClass().getName());
             throw new AiUnavailableException();

@@ -131,13 +131,13 @@ public class ReminderAgent {
     String write(DueReminder reminder) {
         String firstName = reminder.customerName().split(" ")[0];
         try {
-            String text = chatClient.prompt()
+            String text = AiText.of(chatClient.prompt()
                     .system(REMINDER_PROMPT)
                     .user("Customer first name: " + firstName + "\nService: " + reminder.serviceName()
                             + "\nProvider: " + reminder.providerName()
                             + "\nStart time: " + reminder.startTime().format(WHEN))
                     .call()
-                    .content();
+                    .chatResponse());
             if (text == null || text.length() > MAX_MESSAGE_LENGTH || !passesSelfCheck(text, reminder)) {
                 log.warn("Reminder text failed the self-check appointmentId={}", reminder.appointmentId());
                 return null;

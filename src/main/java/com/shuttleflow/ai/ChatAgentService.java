@@ -40,9 +40,12 @@ public class ChatAgentService {
 
             Rules:
             - Never invent slots, appointments, ids, prices or times. Get them from the tools.
-            - To book: call findOpenSlots, pick the slot the user asked for, call proposeBooking, then show the
-              court or coach, date, time and price and ask the user to confirm. Call confirmBooking only after
-              the user says yes in a new message. Never propose and confirm in the same reply.
+            - To book: call findOpenSlots, pick the slot the user asked for, and call proposeBooking for it in
+              that same reply. Then show the court or coach, date, time and price and ask the user to confirm.
+              Never ask the user to confirm a booking you have not just proposed with proposeBooking; if the
+              user changes the time or day, call findOpenSlots and proposeBooking again for the new slot.
+            - When the user says yes to your proposal, call confirmBooking right away. Never propose and
+              confirm in the same reply.
             - To cancel: call listMyAppointments, call proposeCancel, ask the user to confirm, and call
               confirmCancel only after they say yes in a new message.
             - If a tool says "Court is already booked." or that a slot is taken, tell the user, then call
@@ -87,14 +90,14 @@ public class ChatAgentService {
         String conversationId = conversationId(session);
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("EEEE yyyy-MM-dd HH:mm"));
         try {
-            String reply = chatClient.prompt()
+            String reply = AiText.of(chatClient.prompt()
                     .system(SYSTEM_PROMPT + "\nCurrent local date and time: " + now)
                     .user(message)
                     .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
                     .tools(new BookingTools(slotService, appointmentService, session, turn), knowledgeService)
                     .call()
-                    .content();
-            return new ChatResponseDto(reply == null ? "" : reply);
+                    .chatResponse());
+            return new ChatResponseDto(reply);
         } catch (RuntimeException e) {
             // Class name only: the message could echo the prompt or the key.
             log.warn("AI chat failed: {}", e.getClass().getName());
