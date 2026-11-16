@@ -1,6 +1,7 @@
 package com.shuttleflow.ai;
 
 import com.shuttleflow.dto.AppointmentDto;
+import com.shuttleflow.dto.BookingRequest;
 import com.shuttleflow.dto.SlotDto;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.BookingConflictException;
@@ -34,11 +35,15 @@ public class BookingTools {
     private final SlotService slotService;
     private final AppointmentService appointmentService;
     private final HttpSession session;
+    private final int turn;
 
-    public BookingTools(SlotService slotService, AppointmentService appointmentService, HttpSession session) {
+    /** {@code turn} is this chat request's turn number; confirms need a pending action from an earlier one. */
+    public BookingTools(SlotService slotService, AppointmentService appointmentService, HttpSession session,
+                        int turn) {
         this.slotService = slotService;
         this.appointmentService = appointmentService;
         this.session = session;
+        this.turn = turn;
     }
 
     @Tool(description = "Find open (bookable) slots between two dates, earliest first, at most 10. "
@@ -92,6 +97,74 @@ public class BookingTools {
                     .append(a.getEndTime().toLocalTime()).append(" | ").append(a.getStatus()).append('\n'));
             return out.toString().trim();
         });
+    }
+
+    @Tool(description = "Step 1 of booking: record the slot the user wants. Does NOT book. Afterwards, show the "
+            + "user the slot details and ask them to confirm; call confirmBooking only after they say yes.")
+    public String proposeBooking(@ToolParam(description = "slotId from findOpenSlots") long slotId) {
+        if (slotId < 1) {
+            return "Error: slotId must be a positive number.";
+        }
+        session.setAttribute(PendingAction.SESSION_KEY, new PendingAction(PendingAction.Kind.BOOK, slotId, turn));
+        return "Booking of slotId=" + slotId + " is proposed but NOT booked. Ask the user to confirm.";
+    }
+
+    @Tool(description = "Step 2 of booking: book the proposed slot. Only call after the user explicitly "
+            + "confirmed in a new message.")
+    public String confirmBooking() {
+        return run(() -> {
+            PendingAction pending = takeConfirmable(PendingAction.Kind.BOOK);
+            if (pending == null) {
+                return refusal("booking");
+            }
+            AppointmentDto booked = appointmentService.book(new BookingRequest(pending.targetId(), null), session);
+            return "Booked: appointmentId=" + booked.getAppointmentId() + " | " + booked.getProviderName() + " | "
+                    + booked.getServiceName() + " | " + booked.getStartTime() + " to "
+                    + booked.getEndTime().toLocalTime();
+        });
+    }
+
+    @Tool(description = "Step 1 of cancelling: record the appointment the user wants to cancel. Does NOT cancel. "
+            + "Ask the user to confirm; call confirmCancel only after they say yes.")
+    public String proposeCancel(@ToolParam(description = "appointmentId from listMyAppointments") long appointmentId) {
+        if (appointmentId < 1) {
+            return "Error: appointmentId must be a positive number.";
+        }
+        session.setAttribute(PendingAction.SESSION_KEY,
+                new PendingAction(PendingAction.Kind.CANCEL, appointmentId, turn));
+        return "Cancellation of appointmentId=" + appointmentId + " is proposed but NOT done. Ask the user to confirm.";
+    }
+
+    @Tool(description = "Step 2 of cancelling: cancel the proposed appointment. Only call after the user "
+            + "explicitly confirmed in a new message.")
+    public String confirmCancel() {
+        return run(() -> {
+            PendingAction pending = takeConfirmable(PendingAction.Kind.CANCEL);
+            if (pending == null) {
+                return refusal("cancellation");
+            }
+            appointmentService.cancel(pending.targetId(), session);
+            return "Cancelled appointmentId=" + pending.targetId() + ".";
+        });
+    }
+
+    /**
+     * The code-level confirm-before-write guard: returns the pending action only if it has the right
+     * kind and came from an earlier turn, so a human message always sits between propose and write.
+     * A used action is removed, so one "yes" can never commit twice.
+     */
+    private PendingAction takeConfirmable(PendingAction.Kind kind) {
+        if (!(session.getAttribute(PendingAction.SESSION_KEY) instanceof PendingAction pending)
+                || pending.kind() != kind || pending.turn() >= turn) {
+            return null;
+        }
+        session.removeAttribute(PendingAction.SESSION_KEY);
+        return pending;
+    }
+
+    private String refusal(String what) {
+        return "Error: no " + what + " is waiting for confirmation from an earlier message. Propose it first, "
+                + "show the details and wait for the user to reply yes.";
     }
 
     /** Runs a tool body and turns the service layer's business errors into text for the model. */

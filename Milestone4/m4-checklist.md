@@ -36,7 +36,7 @@ One item = one commit, with its tests, after `mvn test` passes.
    `findOpenSlots(from, to, sessionType)` and `listMyAppointments()` call
    `SlotService` / `AppointmentService` only. Results are sorted by start
    time and capped at 10.
-6. [ ] **Agent 1 write tools with confirm-before-write.**
+6. [x] **Agent 1 write tools with confirm-before-write.**
    `proposeBooking` / `confirmBooking` and `proposeCancel` / `confirmCancel`.
    Propose stores a pending action with the turn number. Confirm runs only
    for a pending action from an earlier turn, and only through

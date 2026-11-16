@@ -40,8 +40,9 @@
 37. 2026-11-16 — Alex Nguyen — Added Spring AI 1.1.8 (BOM) with the Google GenAI chat and embedding starters, set only the api-key (GEMINI_API_KEY, placeholder default so the app boots without it) and the models, passed the key through docker-compose.yml and .env.example, and added GeminiConfigTest; 93 tests pass (M4 item 3).
 38. 2026-11-16 — Alex Nguyen — Added APPOINTMENT_REMINDER to the notifications.type CHECK, NotificationRequest and docs/schema-notes.md, seeded a BOOKED appointment (slot 8, Alex) starting six hours after boot, and added ReminderSchemaTest; 95 tests pass (M4 item 4).
 39. 2026-11-16 — Alex Nguyen — Added the per-request BookingTools in com.shuttleflow.ai with the findOpenSlots and listMyAppointments tools (services only, sorted by start time, capped at 10, service errors returned as text) and BookingToolsReadTest; 99 tests pass (M4 item 5).
+40. 2026-11-16 — Alex Nguyen — Added the confirm-before-write tools (proposeBooking/confirmBooking, proposeCancel/confirmCancel) with a session PendingAction tagged by turn, so a confirm runs only for a pending action from an earlier turn and only once, through AppointmentService, plus BookingToolsWriteTest; 105 tests pass (M4 item 6).
 
 ## What's next
-**Add Agent 1's write tools with confirm-before-write: proposeBooking/confirmBooking and proposeCancel/confirmCancel, where propose stores a pending action with the turn number and confirm runs only for a pending action from an earlier turn, through appointmentService.book()/cancel() (M4 item 6).**
+**Write the required agent double-booking test: two sessions each propose and then confirm the same slot through BookingTools against the real database, one wins, one gets "Court is already booked.", one active appointment remains; add a threaded variant that also runs on PostgreSQL, and test that a provider session is refused (M4 item 7).**
 
-**Why this is next:** the required double-booking agent test (item 7) and the chat endpoint (item 8) need the propose/confirm write path in place.
+**Why this is next:** the PDF requires proof that the agent cannot bypass double-booking protection, and it should pass before the tools are exposed through the chat endpoint in item 8.
