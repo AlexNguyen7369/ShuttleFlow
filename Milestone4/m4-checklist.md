@@ -42,7 +42,7 @@ One item = one commit, with its tests, after `mvn test` passes.
    for a pending action from an earlier turn, and only through
    `appointmentService.book()` / `cancel()`. Conflicts come back as text
    ("Court is already booked.").
-7. [ ] **Required test: double-booking still blocked via the agent.** Two
+7. [x] **Required test: double-booking still blocked via the agent.** Two
    sessions each propose and then confirm the same slot. One booking wins, one
    gets "Court is already booked.", and the DB has one active appointment.
    Add a threaded variant that also runs on PostgreSQL when

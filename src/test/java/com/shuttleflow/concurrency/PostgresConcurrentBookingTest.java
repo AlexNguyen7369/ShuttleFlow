@@ -1,10 +1,12 @@
 package com.shuttleflow.concurrency;
 
+import com.shuttleflow.ai.AgentRaceSupport;
 import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.dto.AppointmentDto;
 import com.shuttleflow.dto.BookingRequest;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.BookingConflictException;
+import com.shuttleflow.service.SlotService;
 import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -42,6 +44,7 @@ class PostgresConcurrentBookingTest {
 
     @Autowired private JdbcTemplate jdbc;
     @Autowired private AppointmentService appointmentService;
+    @Autowired private SlotService slotService;
 
     @DynamicPropertySource
     static void postgres(DynamicPropertyRegistry registry) {
@@ -88,6 +91,18 @@ class PostgresConcurrentBookingTest {
         } finally {
             pool.shutdownNow();
         }
+    }
+
+    /** M4: the same race through the AI agent's propose/confirm tools must also yield one booking. */
+    @RepeatedTest(5)
+    void agentConfirmRaceYieldsExactlyOneBooking() throws Exception {
+        long slotId = AgentRaceSupport.freshSlot(jdbc);
+
+        List<String> results = AgentRaceSupport.race(THREADS, slotId, slotService, appointmentService);
+
+        assertEquals(1, results.stream().filter(r -> r.startsWith("Booked:")).count());
+        assertEquals(THREADS - 1, results.stream().filter("Error: Court is already booked."::equals).count());
+        assertEquals(1, AgentRaceSupport.activeBookings(jdbc, slotId));
     }
 
     private long freshSlot() {

@@ -9,7 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+// Own in-memory database: other tests wipe the shared one's appointments, which would hide the seed.
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:reminderseed;MODE=PostgreSQL;DB_CLOSE_DELAY=-1")
 @Transactional
 class ReminderSchemaTest {
     @Autowired private JdbcTemplate jdbc;
