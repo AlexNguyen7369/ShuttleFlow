@@ -66,7 +66,7 @@ One item = one commit, with its tests, after `mvn test` passes.
     on startup (behind a property), then `search()` / `answer()` ("answer only
     from context"). `POST /ai/ask {question}` → `{answer, sources}`. Add a
     `lookupPolicy` tool for Agent 1. Test with a stub embedding model.
-12. [ ] **Agent 2: reminder agent.** Add the repository query
+12. [x] **Agent 2: reminder agent.** Add the repository query
     `findDueForReminder` (BOOKED, starts within 24h, no `REMINDER:<id>` row
     yet). `ReminderAgent` has the LLM write a personalized reminder and queues
     it through `NotificationService` (key `REMINDER:<id>`, sent by the M3
