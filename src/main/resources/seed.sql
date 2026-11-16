@@ -24,3 +24,9 @@ INSERT INTO availability_slots (provider_id, service_id, start_time, end_time, s
 (2, 3, CAST(CURRENT_DATE AS TIMESTAMP) + INTERVAL '1' DAY + INTERVAL '16' HOUR, CAST(CURRENT_DATE AS TIMESTAMP) + INTERVAL '1' DAY + INTERVAL '17' HOUR, 'OPEN'),
 (2, 3, CAST(CURRENT_DATE AS TIMESTAMP) + INTERVAL '3' DAY + INTERVAL '15' HOUR, CAST(CURRENT_DATE AS TIMESTAMP) + INTERVAL '3' DAY + INTERVAL '16' HOUR, 'OPEN'),
 (2, 3, CAST(CURRENT_DATE AS TIMESTAMP) + INTERVAL '5' DAY + INTERVAL '17' HOUR, CAST(CURRENT_DATE AS TIMESTAMP) + INTERVAL '5' DAY + INTERVAL '18' HOUR, 'OPEN');
+
+-- M4 demo: one BOOKED appointment starting a few hours after boot, so the reminder agent
+-- always has something due within 24h. Slot 8 is booked by Alex (user 3).
+INSERT INTO availability_slots (provider_id, service_id, start_time, end_time, status) VALUES
+(1, 1, LOCALTIMESTAMP(0) + INTERVAL '6' HOUR, LOCALTIMESTAMP(0) + INTERVAL '7' HOUR, 'BOOKED');
+INSERT INTO appointments (slot_id, user_id, status, active_slot_id) VALUES (8, 3, 'BOOKED', 8);
