@@ -62,7 +62,7 @@ One item = one commit, with its tests, after `mvn test` passes.
     `src/main/resources/knowledge/shuttleflow-policies.md` (hours, booking,
     cancellation, courts, coaches, providers, equipment, contact). Every rule
     must match the real code.
-11. [ ] **RAG.** `KnowledgeService` ingests the file into `SimpleVectorStore`
+11. [x] **RAG.** `KnowledgeService` ingests the file into `SimpleVectorStore`
     on startup (behind a property), then `search()` / `answer()` ("answer only
     from context"). `POST /ai/ask {question}` → `{answer, sources}`. Add a
     `lookupPolicy` tool for Agent 1. Test with a stub embedding model.

@@ -46,6 +46,8 @@ public class ChatAgentService {
               confirmCancel only after they say yes in a new message.
             - If a tool says "Court is already booked." or that a slot is taken, tell the user, then call
               findOpenSlots and offer the nearest open alternatives.
+            - For questions about hours, prices, rules, equipment or contact, call lookupPolicy and answer only
+              from what it returns.
             - If a tool returns an error, explain it plainly. Do not retry the same action silently.
             - "This week" means today through the next 6 days. Use dates in YYYY-MM-DD for tools.
             - Keep replies short and friendly. Show times like "Tue Nov 17, 9:00-10:00 AM".
@@ -55,9 +57,11 @@ public class ChatAgentService {
     private final SlotService slotService;
     private final AppointmentService appointmentService;
     private final SessionAuth sessionAuth;
+    private final KnowledgeService knowledgeService;
 
     public ChatAgentService(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory, SlotService slotService,
-                            AppointmentService appointmentService, SessionAuth sessionAuth) {
+                            AppointmentService appointmentService, SessionAuth sessionAuth,
+                            KnowledgeService knowledgeService) {
         // shortcut: in-memory chat memory is lost on restart and never evicts old conversations; switch to
         // JDBC chat memory if conversations must survive restarts or the app runs for long.
         this.chatClient = chatClientBuilder
@@ -66,6 +70,7 @@ public class ChatAgentService {
         this.slotService = slotService;
         this.appointmentService = appointmentService;
         this.sessionAuth = sessionAuth;
+        this.knowledgeService = knowledgeService;
     }
 
     public ChatResponseDto chat(ChatRequest request, HttpSession session) {
@@ -85,7 +90,7 @@ public class ChatAgentService {
                     .system(SYSTEM_PROMPT + "\nCurrent local date and time: " + now)
                     .user(message)
                     .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
-                    .tools(new BookingTools(slotService, appointmentService, session, turn))
+                    .tools(new BookingTools(slotService, appointmentService, session, turn), knowledgeService)
                     .call()
                     .content();
             return new ChatResponseDto(reply == null ? "" : reply);
