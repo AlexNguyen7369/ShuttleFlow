@@ -16,7 +16,7 @@ Full build plan: `Milestone4/milestone4plan.md`.
 
 One item = one commit, with its tests, after `mvn test` passes.
 
-1. [ ] **Record M4 decisions** in `docs/decisions.md`: Gemini model name,
+1. [x] **Record M4 decisions** in `docs/decisions.md`: Gemini model name,
    Spring AI version, `ai` package, per-request tools carrying the session,
    code-enforced confirm-before-write (propose/confirm + turn number),
    reminder task, `SimpleVectorStore`, bonus = self-check.
