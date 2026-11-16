@@ -56,7 +56,7 @@ class AiChatControllerTest {
         ToolCallingChatOptions options = (ToolCallingChatOptions) prompt.getValue().getOptions();
         assertThat(options.getToolCallbacks()).extracting(t -> t.getToolDefinition().name())
                 .contains("findOpenSlots", "listMyAppointments", "proposeBooking", "confirmBooking",
-                        "proposeCancel", "confirmCancel");
+                        "proposeCancel", "confirmCancel", "lookupPolicy");
     }
 
     @Test
