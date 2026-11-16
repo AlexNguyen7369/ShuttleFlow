@@ -12,7 +12,8 @@ function implementedHtml(items) {
   let current = null;
   return items.map((x) => {
     const group = milestoneOf(x.id); const heading = group !== current ? `<h3 class="addition-group">${esc(MILESTONE_NAMES[group] || group)}</h3>` : ""; current = group;
-    return `${heading}<article class="addition"><div class="addition-head"><h3>${esc(x.title)}</h3><span class="badge">${esc(x.id)}</span></div><p>${esc(x.detail)}</p><small class="muted">${esc(x.date || "date not recorded")}${x.source ? ` · ${esc(x.source)}` : ""}</small></article>`;
+    const evidence = (x.evidence || []).map((e) => `<section class="evidence"><div class="evidence-head"><b>${esc(e.label)}</b><span class="path">${esc(e.file)}:${e.start}-${e.end}</span></div><pre class="evidence-code">${e.lines.map((line, i) => `<span><span class="no">${e.start + i}</span>${esc(line) || " "}</span>`).join("")}</pre></section>`).join("");
+    return `${heading}<details class="addition"><summary><div class="addition-head"><h3>${esc(x.title)}</h3><span class="badge">${esc(x.id)}</span></div><p>${esc(x.detail)}</p><small class="muted">${esc(x.date || "date not recorded")}${x.source ? ` · ${esc(x.source)}` : ""} · <span class="evidence-hint">click to inspect implementation</span></small></summary><div class="addition-evidence">${evidence || `<p class="muted">No source mapping has been recorded for this addition yet.</p>`}</div></details>`;
   }).join("");
 }
 // Bug source: the captured code with the faulty lines highlighted in red.

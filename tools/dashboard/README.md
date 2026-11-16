@@ -25,6 +25,10 @@ The Changes & history tab's **Implemented additions** list every completed
 milestone task (M1, M2, ...), grouped by milestone in task order. Plain-English
 entries in `data/implemented.json` take precedence over a task's board copy;
 any `data/todo.json` task whose status becomes `done` appears automatically.
+Each mapped addition is expandable/clickable. Its evidence panel shows the
+exact repository-relative file, line range, and current source excerpt declared
+in that addition's `evidence` list. This keeps the dashboard's claims traceable
+to the checkout instead of displaying an unverified summary.
 
 If the page warns that the server is out of date, `server.py` changed after the
 server started (Python does not reload it). Restart the server.

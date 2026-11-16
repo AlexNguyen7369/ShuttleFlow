@@ -139,6 +139,44 @@ def history():
 
 TASK_ID = re.compile(r"^M(\d+)-(\d+)$")
 
+# Board-generated completed tasks use this same evidence path as hand-written
+# additions. These are representative, verifiable locations for every task
+# that can appear in the Implemented additions view.
+IMPLEMENTED_EVIDENCE = {
+    "M1-01": [("Database decision", "docs/decisions.md", 51, 58)],
+    "M1-02": [("Schema contract", "src/main/resources/schema.sql", 35, 61)],
+    "M1-03": [("Layered architecture", "README.md", 177, 194)],
+    "M1-04": [("Verification commands", "README.md", 144, 157)],
+    "M1-05": [("Home controller", "src/main/java/com/shuttleflow/controller/HomeController.java", 1, 21)],
+    "M1-06": [("Slot filtering and pagination SQL", "src/main/java/com/shuttleflow/repository/SlotRepository.java", 26, 107)],
+    "M1-07": [("Schema tables and constraints", "src/main/resources/schema.sql", 7, 62), ("Seed data", "src/main/resources/seed.sql", 1, 25)],
+    "M1-08": [("Project implementation rules", "AGENTS.md", 1, 35)],
+    "M2-10": [("M2 slot filters and LIMIT/OFFSET", "src/main/java/com/shuttleflow/repository/SlotRepository.java", 26, 107)],
+    "M2-11": [("Customer booking service", "src/main/java/com/shuttleflow/service/AppointmentService.java", 32, 72)],
+    "M2-12": [("Transaction and row lock", "src/main/java/com/shuttleflow/service/AppointmentService.java", 32, 72), ("Unique active booking backstop", "src/main/resources/schema.sql", 46, 61)],
+    "M2-13": [("Caller-scoped appointment views", "src/main/java/com/shuttleflow/service/AppointmentService.java", 75, 82)],
+    "M2-14": [("Owner-only cancellation and slot reopening", "src/main/java/com/shuttleflow/service/AppointmentService.java", 84, 108)],
+    "M2-15": [("Provider availability rules", "src/main/java/com/shuttleflow/service/ProviderService.java", 35, 83)],
+    "M2-16": [("Provider appointment view", "src/main/java/com/shuttleflow/service/ProviderService.java", 85, 103)],
+    "M2-17": [("Customer booking UI", "frontend/index.html", 23, 85), ("Customer API actions", "frontend/src/app.js", 93, 155)],
+    "M2-18": [("Provider workspace UI", "frontend/index.html", 88, 108), ("Provider API actions", "frontend/src/app.js", 157, 235)],
+    "M2-19": [("Service rule tests", "src/test/java/com/shuttleflow/service/M2ServiceRulesTest.java", 1, 66)],
+    "M2-20": [("Endpoint integration tests", "src/test/java/com/shuttleflow/controller/M2EndpointIntegrationTest.java", 1, 150)],
+    "M2-21": [("Two-thread same-slot race", "src/test/java/com/shuttleflow/concurrency/ConcurrentBookingTest.java", 29, 75)],
+    "M2-22": [("Published endpoint and concurrency evidence", "README.md", 35, 142)],
+    "M2-23": [("Build verification commands", "AGENTS.md", 83, 90)],
+    "M2-24": [("PostgreSQL generated-key handling", "src/main/java/com/shuttleflow/repository/ProviderRepository.java", 35, 75), ("Appointment generated key", "src/main/java/com/shuttleflow/repository/AppointmentRepository.java", 20, 58)],
+    "M2-25": [("Portable active-booking constraint", "src/main/resources/schema.sql", 46, 61)],
+    "M2-26": [("Future-only slot query", "src/main/java/com/shuttleflow/repository/SlotRepository.java", 26, 43), ("Relative seed slots", "src/main/resources/seed.sql", 19, 25)],
+    "M2-27": [("Safe provider slot removal", "src/main/java/com/shuttleflow/service/ProviderService.java", 55, 83)],
+    "M2-28": [("Session fixation defense", "src/main/java/com/shuttleflow/service/AuthService.java", 44, 52), ("Explicit booking isolation", "src/main/java/com/shuttleflow/service/AppointmentService.java", 32, 42), ("Safe framework errors", "src/main/java/com/shuttleflow/controller/ApiExceptionHandler.java", 60, 77)],
+    "M2-29": [("CORS with session cookies", "src/main/java/com/shuttleflow/config/CorsConfig.java", 1, 45), ("Completed browser client", "frontend/src/app.js", 18, 110)],
+    "M2-30": [("Expanded integration coverage", "src/test/java/com/shuttleflow/controller/M2EndpointIntegrationTest.java", 1, 150), ("PostgreSQL race coverage", "src/test/java/com/shuttleflow/concurrency/PostgresConcurrentBookingTest.java", 1, 125)],
+    "M2-31": [("Browser/API verification target", "frontend/README.md", 1, 18)],
+    "M2-32": [("Technical implementation evidence", "README.md", 35, 142), ("Concurrency decision record", "docs/decisions.md", 67, 86)],
+    "M2-33": [("M2 architecture summary", "README.md", 177, 204)]
+}
+
 
 def history_order(item):
     """Milestone order (M1 before M2), then task number; non-task entries such as TESTS go last."""
@@ -160,7 +198,33 @@ def implemented_additions():
             "date": str(item.get("completed") or item.get("started") or "")[:10],
             "source": "dashboard task board"
         }
-    return sorted(items.values(), key=history_order)
+    additions = []
+    for item in sorted(items.values(), key=history_order):
+        # Evidence is intentionally declared per task in implemented.json. The
+        # code is read at request time so the dashboard always represents the
+        # current checkout, including line changes after an implementation.
+        evidence = []
+        declared = item.get("evidence") or [
+            {"label": label, "file": file, "start": start, "end": end}
+            for label, file, start, end in IMPLEMENTED_EVIDENCE.get(str(item.get("id", "")), [])
+        ]
+        for entry in declared:
+            rel = str(entry.get("file", ""))
+            lines = source_lines(rel)
+            start = int(entry.get("start", 1))
+            end = int(entry.get("end", start))
+            if lines is None or start < 1 or end < start or end > len(lines):
+                continue
+            evidence.append({
+                "label": entry.get("label", "Implementation evidence"),
+                "file": rel,
+                "start": start,
+                "end": end,
+                "lines": lines[start - 1:end],
+            })
+        item["evidence"] = evidence
+        additions.append(item)
+    return additions
 
 
 def source_lines(rel, ref=None):
