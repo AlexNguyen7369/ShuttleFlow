@@ -6,6 +6,7 @@ import com.shuttleflow.service.UnauthorizedException;
 import com.shuttleflow.service.BookingConflictException;
 import com.shuttleflow.service.ConflictException;
 import com.shuttleflow.service.NotFoundException;
+import com.shuttleflow.service.AiUnavailableException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler({BookingConflictException.class, ConflictException.class})
     public ResponseEntity<Map<String, String>> handleConflict(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+    }
+
+    @ExceptionHandler(AiUnavailableException.class)
+    public ResponseEntity<Map<String, String>> handleAiUnavailable(AiUnavailableException e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", e.getMessage()));
     }
 
     @ExceptionHandler(NotFoundException.class)
