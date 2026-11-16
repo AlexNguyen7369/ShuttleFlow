@@ -268,6 +268,57 @@ async function removeAvailability(slotId) {
   }
 }
 
+// ---------- AI assistant ----------
+
+function addChatLine(who, text) {
+  $("chat-log").insertAdjacentHTML("beforeend", `<p class="chat-${who}"><b>${who === "user" ? "You" : "Assistant"}:</b> ${esc(text)}</p>`);
+  $("chat-log").scrollTop = $("chat-log").scrollHeight;
+}
+
+async function sendChat(event) {
+  event.preventDefault();
+  const message = $("chat-input").value.trim();
+  if (!message) return;
+  if (!isRole("CUSTOMER")) {
+    addChatLine("assistant", "Please sign in with a customer account to book by chat.");
+    return;
+  }
+  $("chat-input").value = "";
+  addChatLine("user", message);
+  try {
+    const { reply } = await request("/ai/chat", { method: "POST", body: JSON.stringify({ message }) });
+    addChatLine("assistant", reply);
+    loadSlots(); // the assistant may have booked or cancelled
+    loadAppointments();
+  } catch (error) {
+    addChatLine("assistant", error.message);
+  }
+}
+
+async function askPolicy(event) {
+  event.preventDefault();
+  $("ask-answer").textContent = "Thinking…";
+  $("ask-sources").textContent = "";
+  try {
+    const { answer, sources } = await request("/ai/ask", {
+      method: "POST", body: JSON.stringify({ question: $("ask-input").value }) });
+    $("ask-answer").textContent = answer;
+    $("ask-sources").textContent = sources.length ? `Sources: ${sources.join(", ")}` : "";
+  } catch (error) {
+    $("ask-answer").textContent = error.status === 401 ? "Please sign in to ask a question." : error.message;
+  }
+}
+
+async function runReminders() {
+  try {
+    const run = await request("/ai/reminders/run", { method: "POST" });
+    $("reminder-message").textContent =
+      `Scanned ${run.scanned}, queued ${run.queued} (${run.fallbacks} used the template).`;
+  } catch (error) {
+    $("reminder-message").textContent = error.message;
+  }
+}
+
 // ---------- wiring ----------
 
 async function loadHome() {
@@ -295,6 +346,9 @@ $("previous").addEventListener("click", () => { if (state.page > 1) { state.page
 $("next").addEventListener("click", () => { state.page++; loadSlots(); });
 $("booking-confirm").addEventListener("click", confirmBooking);
 $("booking-cancel").addEventListener("click", () => $("booking-dialog").close());
+$("chat-form").addEventListener("submit", sendChat);
+$("ask-form").addEventListener("submit", askPolicy);
+$("run-reminders").addEventListener("click", runReminders);
 window.addEventListener("hashchange", () => {
   if (location.hash === "#appointments") loadAppointments();
   if (location.hash === "#provider") loadProviderWorkspace();

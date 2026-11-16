@@ -78,7 +78,7 @@ One item = one commit, with its tests, after `mvn test` passes.
     or if the LLM fails or returns 429, use the template message. Add
     `remindersQueued` and `reminderFallbacks` to `/metrics`. Tests: both
     fallback paths.
-14. [ ] **Frontend chat panel.** A dependency-free chat box for `/ai/chat` and
+14. [x] **Frontend chat panel.** A dependency-free chat box for `/ai/chat` and
     an "Ask policy" box for `/ai/ask`, for the demo.
 15. [ ] **Docs.** README (AI setup, `GEMINI_API_KEY`, endpoints, demo
     steps), `docs/features/11-ai-chat-agent.md`, `12-reminder-agent.md`,
