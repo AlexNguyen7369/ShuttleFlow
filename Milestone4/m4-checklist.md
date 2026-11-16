@@ -20,7 +20,7 @@ One item = one commit, with its tests, after `mvn test` passes.
    Spring AI version, `ai` package, per-request tools carrying the session,
    code-enforced confirm-before-write (propose/confirm + turn number),
    reminder task, `SimpleVectorStore`, bonus = self-check.
-2. [ ] **Upgrade Spring Boot** 3.3.4 → latest 3.5.x (Spring AI's Boot 3 line
+2. [x] **Upgrade Spring Boot** 3.3.4 → latest 3.5.x (Spring AI's Boot 3 line
    needs 3.4+). No AI code yet; the full suite stays green.
 3. [ ] **Add Spring AI + Gemini.** Import `spring-ai-bom`, add the Google GenAI
    chat and embedding starters, and set only

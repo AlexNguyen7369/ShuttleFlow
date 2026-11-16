@@ -36,8 +36,9 @@
 33. 2026-10-28 — Alex Nguyen — Planned Milestone 4 (Enterprise AI): wrote Milestone4/milestone4plan.md and Milestone4/m4-checklist.md covering the Gemini tool-calling chat agent with code-enforced confirm-before-write, the scheduled LLM reminder agent on the M3 outbox, SimpleVectorStore RAG over a policy file, the required agent double-booking test, and a self-check bonus.
 34. 2026-11-16 — Alex Nguyen — Removed the finished Milestone2/voice_script2.md and Milestone3/distribution-diagram.png and pointed the README at the remaining distribution-diagram.svg; the suite passes 91 tests (1 skipped) on JDK 17.
 35. 2026-11-16 — Alex Nguyen — Recorded the M4 decisions in docs/decisions.md (gemini-3.5-flash-lite and gemini-embedding-001 on the free tier, Spring AI 1.1.8 on Spring Boot 3.5.16, the ai package, per-request session tools, propose/confirm turn check, reminder agent, SimpleVectorStore, self-check bonus) (M4 item 1).
+36. 2026-11-16 — Alex Nguyen — Upgraded Spring Boot from 3.3.4 to 3.5.16 with no code changes; the suite still passes 91 tests (1 skipped) on JDK 17, and CLAUDE.md and AGENTS.md name the new version (M4 item 2).
 
 ## What's next
-**Upgrade Spring Boot from 3.3.4 to 3.5.16 with no AI code yet, keeping the full suite green (M4 item 2).**
+**Add Spring AI 1.1.8 and the Google GenAI chat and embedding starters, configured with only spring.ai.google.genai.api-key=${GEMINI_API_KEY:} and the model, plus GEMINI_API_KEY in docker-compose.yml and .env.example, with tests on a dummy key and a mocked model (M4 item 3).**
 
-**Why this is next:** Spring AI 1.1.8 needs Boot 3.5, so the upgrade must land and pass on its own before the Spring AI and Gemini dependencies are added in item 3.
+**Why this is next:** the Boot 3.5 base is now in place, and every AI item after this (tools, agents, RAG) needs the ChatClient and EmbeddingModel beans this wiring provides.
