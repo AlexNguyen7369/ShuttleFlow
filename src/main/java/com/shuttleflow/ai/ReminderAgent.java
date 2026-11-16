@@ -4,6 +4,7 @@ import com.shuttleflow.auth.SessionAuth;
 import com.shuttleflow.dto.ReminderRunDto;
 import com.shuttleflow.repository.AppointmentRepository;
 import com.shuttleflow.repository.AppointmentRepository.DueReminder;
+import com.shuttleflow.service.MetricsService;
 import com.shuttleflow.service.NotificationService;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -42,13 +44,16 @@ public class ReminderAgent {
     private final AppointmentRepository appointmentRepository;
     private final NotificationService notificationService;
     private final SessionAuth sessionAuth;
+    private final MetricsService metricsService;
 
     public ReminderAgent(ChatClient.Builder chatClientBuilder, AppointmentRepository appointmentRepository,
-                         NotificationService notificationService, SessionAuth sessionAuth) {
+                         NotificationService notificationService, SessionAuth sessionAuth,
+                         MetricsService metricsService) {
         this.chatClient = chatClientBuilder.build();
         this.appointmentRepository = appointmentRepository;
         this.notificationService = notificationService;
         this.sessionAuth = sessionAuth;
+        this.metricsService = metricsService;
     }
 
     @Scheduled(fixedDelayString = "${shuttleflow.ai.reminder.poll-ms}",
@@ -75,20 +80,48 @@ public class ReminderAgent {
         int fallbacks = 0;
         for (DueReminder reminder : due) {
             String message = write(reminder);
-            if (message == null) {
+            boolean fallback = message == null;
+            if (fallback) {
                 message = NotificationService.reminderTemplate(reminder.serviceName(), reminder.providerName(),
                         reminder.startTime());
-                fallbacks++;
             }
             try {
                 notificationService.enqueueReminder(reminder.appointmentId(), reminder.customerEmail(), message);
                 queued++;
+                metricsService.reminderQueued();
+                if (fallback) {
+                    fallbacks++;
+                    metricsService.reminderFallback();
+                }
             } catch (DataIntegrityViolationException e) {
                 log.info("Reminder already queued appointmentId={}", reminder.appointmentId());
             }
         }
         log.info("Reminder run scanned={} queued={} fallbacks={}", due.size(), queued, fallbacks);
         return new ReminderRunDto(due.size(), queued, fallbacks);
+    }
+
+    /**
+     * Bonus (reflection): an LLM can name the wrong court or time, so the text is checked against the
+     * database record before it is sent. It must name the provider and state the start time; an
+     * unfilled placeholder like "[name]" also fails.
+     */
+    static boolean passesSelfCheck(String text, DueReminder reminder) {
+        String normalized = text.toLowerCase(Locale.US).replace(".", "").replace(" ", "");
+        if (text.isBlank() || text.contains("[") || text.contains("{")
+                || !normalized.contains(reminder.providerName().toLowerCase(Locale.US).replace(" ", ""))) {
+            return false;
+        }
+        LocalDateTime start = reminder.startTime();
+        String ampm = start.getHour() < 12 ? "am" : "pm";
+        int hour12 = start.getHour() % 12 == 0 ? 12 : start.getHour() % 12;
+        List<String> accepted = new ArrayList<>(List.of(
+                String.format("%d:%02d%s", hour12, start.getMinute(), ampm),   // 9:00am
+                String.format("%02d:%02d", start.getHour(), start.getMinute()))); // 09:00 or 21:00
+        if (start.getMinute() == 0) {
+            accepted.add(hour12 + ampm);                                         // 9am
+        }
+        return accepted.stream().anyMatch(normalized::contains);
     }
 
     /** The LLM's reminder, or null when it fails or returns something unusable. */
@@ -102,7 +135,8 @@ public class ReminderAgent {
                             + "\nStart time: " + reminder.startTime().format(WHEN))
                     .call()
                     .content();
-            if (text == null || text.isBlank() || text.length() > MAX_MESSAGE_LENGTH) {
+            if (text == null || text.length() > MAX_MESSAGE_LENGTH || !passesSelfCheck(text, reminder)) {
+                log.warn("Reminder text failed the self-check appointmentId={}", reminder.appointmentId());
                 return null;
             }
             return text.trim();

@@ -16,6 +16,8 @@ public class MetricsService {
     private final AtomicLong bookingConflicts = new AtomicLong();
     private final AtomicLong notificationsSent = new AtomicLong();
     private final AtomicLong notificationFailures = new AtomicLong();
+    private final AtomicLong remindersQueued = new AtomicLong();
+    private final AtomicLong reminderFallbacks = new AtomicLong();
     private final NotificationRepository notificationRepository;
 
     public MetricsService(NotificationRepository notificationRepository) {
@@ -26,9 +28,13 @@ public class MetricsService {
     public void bookingConflict() { bookingConflicts.incrementAndGet(); }
     public void notificationSent() { notificationsSent.incrementAndGet(); }
     public void notificationFailed() { notificationFailures.incrementAndGet(); }
+    public void reminderQueued() { remindersQueued.incrementAndGet(); }
+    /** A reminder that used the template because the LLM failed or its text failed the self-check. */
+    public void reminderFallback() { reminderFallbacks.incrementAndGet(); }
 
     public MetricsDto snapshot() {
         return new MetricsDto(bookingsCreated.get(), bookingConflicts.get(), notificationsSent.get(),
-                notificationFailures.get(), notificationRepository.countPending());
+                notificationFailures.get(), notificationRepository.countPending(), remindersQueued.get(),
+                reminderFallbacks.get());
     }
 }
