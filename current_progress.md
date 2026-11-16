@@ -39,8 +39,9 @@
 36. 2026-11-16 — Alex Nguyen — Upgraded Spring Boot from 3.3.4 to 3.5.16 with no code changes; the suite still passes 91 tests (1 skipped) on JDK 17, and CLAUDE.md and AGENTS.md name the new version (M4 item 2).
 37. 2026-11-16 — Alex Nguyen — Added Spring AI 1.1.8 (BOM) with the Google GenAI chat and embedding starters, set only the api-key (GEMINI_API_KEY, placeholder default so the app boots without it) and the models, passed the key through docker-compose.yml and .env.example, and added GeminiConfigTest; 93 tests pass (M4 item 3).
 38. 2026-11-16 — Alex Nguyen — Added APPOINTMENT_REMINDER to the notifications.type CHECK, NotificationRequest and docs/schema-notes.md, seeded a BOOKED appointment (slot 8, Alex) starting six hours after boot, and added ReminderSchemaTest; 95 tests pass (M4 item 4).
+39. 2026-11-16 — Alex Nguyen — Added the per-request BookingTools in com.shuttleflow.ai with the findOpenSlots and listMyAppointments tools (services only, sorted by start time, capped at 10, service errors returned as text) and BookingToolsReadTest; 99 tests pass (M4 item 5).
 
 ## What's next
-**Build Agent 1's read tools: a per-request BookingTools holding the session, with findOpenSlots(from, to, sessionType) and listMyAppointments() calling SlotService and AppointmentService only, sorted by start time and capped at 10 (M4 item 5).**
+**Add Agent 1's write tools with confirm-before-write: proposeBooking/confirmBooking and proposeCancel/confirmCancel, where propose stores a pending action with the turn number and confirm runs only for a pending action from an earlier turn, through appointmentService.book()/cancel() (M4 item 6).**
 
-**Why this is next:** the write tools (item 6), the double-booking agent test (item 7) and the chat endpoint (item 8) all build on BookingTools and its session handling.
+**Why this is next:** the required double-booking agent test (item 7) and the chat endpoint (item 8) need the propose/confirm write path in place.

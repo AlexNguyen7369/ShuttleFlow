@@ -32,7 +32,7 @@ One item = one commit, with its tests, after `mvn test` passes.
 4. [x] **Schema: reminder type.** Add `'APPOINTMENT_REMINDER'` to the
    `notifications.type` CHECK, to `NotificationRequest` and to
    `docs/schema-notes.md`. Seed one `BOOKED` appointment within 24h of boot.
-5. [ ] **Agent 1 read tools.** `BookingTools` (per request, holds the session):
+5. [x] **Agent 1 read tools.** `BookingTools` (per request, holds the session):
    `findOpenSlots(from, to, sessionType)` and `listMyAppointments()` call
    `SlotService` / `AppointmentService` only. Results are sorted by start
    time and capped at 10.
