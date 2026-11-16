@@ -63,6 +63,15 @@ class BookingToolsWriteTest {
     }
 
     @Test
+    void aProposalExpiresOnceTheUserMovesOn() {
+        turn(1).proposeBooking(7);
+
+        assertThat(turn(3).confirmBooking()).startsWith("Error: no booking is waiting");
+        assertThat(turn(4).confirmBooking()).startsWith("Error: no booking is waiting");
+        verify(appointmentService, never()).book(any(), any());
+    }
+
+    @Test
     void confirmWithoutAnyProposalIsRefused() {
         assertThat(turn(5).confirmBooking()).startsWith("Error: no booking is waiting");
         assertThat(turn(5).confirmCancel()).startsWith("Error: no cancellation is waiting");

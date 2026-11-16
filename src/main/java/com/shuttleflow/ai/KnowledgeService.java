@@ -101,8 +101,14 @@ public class KnowledgeService {
     @Tool(description = "Look up ShuttleFlow policies (hours, prices, booking and cancellation rules, equipment, "
             + "contact). Returns the most relevant policy sections; answer only from them.")
     public String lookupPolicy(@ToolParam(description = "The policy question") String question) {
-        List<Document> sections = search(question);
-        return sections.isEmpty() ? "No matching policy found." : context(sections);
+        try {
+            List<Document> sections = search(question);
+            return sections.isEmpty() ? "No matching policy found." : context(sections);
+        } catch (RuntimeException e) {
+            // A policy lookup failure must not fail the whole chat turn (and any booking step in it).
+            log.warn("Policy lookup failed: {}", e.getClass().getName());
+            return "Policy lookup is unavailable right now.";
+        }
     }
 
     List<Document> search(String question) {

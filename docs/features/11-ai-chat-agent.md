@@ -18,7 +18,7 @@ Spring AI) calls tools that wrap the existing services.
 - Model unavailable (no or bad key, rate limit, timeout) → `503 {"error": "The AI assistant is unavailable right now. Please try again later."}`
 - Tools call `SlotService` / `AppointmentService` only, never repositories, so RBAC, the `FOR UPDATE` lock and `UNIQUE (active_slot_id)` still apply
 - The session is never a tool argument: the model cannot act as another user
-- Confirm-before-write in code: `propose` stores a pending action tagged with the chat turn; `confirm` runs only for a pending action of the same kind from an earlier turn, and uses it up
+- Confirm-before-write in code: `propose` stores a pending action tagged with the chat turn; `confirm` runs only for a pending action of the same kind from the immediately previous turn, and uses it up; an older proposal expires. The turn counter is incremented atomically per session
 - Two sessions confirming the same slot: one books, the other gets "Court is already booked." and the agent offers alternatives
 - Service errors come back to the model as text (`Error: ...`), not as HTTP errors
 - Memory: a random UUID in the session keys `MessageChatMemoryAdvisor`, so follow-ups ("actually make it 2pm") work; the session id is never used

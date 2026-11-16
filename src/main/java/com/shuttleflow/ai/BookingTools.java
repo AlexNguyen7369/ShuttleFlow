@@ -150,12 +150,18 @@ public class BookingTools {
 
     /**
      * The code-level confirm-before-write guard: returns the pending action only if it has the right
-     * kind and came from an earlier turn, so a human message always sits between propose and write.
+     * kind and was proposed in the turn just before this one, so the user's latest message is the
+     * reply to that proposal. An older proposal expires.
      * A used action is removed, so one "yes" can never commit twice.
      */
     private PendingAction takeConfirmable(PendingAction.Kind kind) {
         if (!(session.getAttribute(PendingAction.SESSION_KEY) instanceof PendingAction pending)
                 || pending.kind() != kind || pending.turn() >= turn) {
+            return null;
+        }
+        if (pending.turn() != turn - 1) {
+            // Stale: the user moved on after the proposal, so this message is not the answer to it.
+            session.removeAttribute(PendingAction.SESSION_KEY);
             return null;
         }
         session.removeAttribute(PendingAction.SESSION_KEY);
