@@ -146,3 +146,39 @@ Milestone 1 itself is only the design + a read-only skeleton (`GET /`, `GET /slo
    outbox count at `GET /metrics`. No Actuator/Micrometer: small and explainable.
 10. **Logging.** SLF4J at INFO/WARN/ERROR with ids only. Never passwords,
     hashes, session IDs, recipients, message bodies or request bodies.
+
+## M4 decisions — 2026-11-16
+
+1. **Model.** Gemini API free tier with a Google AI Studio key. Chat model
+   `gemini-3.5-flash-lite` (the newest free Flash-Lite model; the PDF asks
+   for a current model). Embeddings use `gemini-embedding-001` (free tier).
+   The model name comes from `GEMINI_MODEL`, so it can change without code.
+2. **Library versions.** Spring AI `1.1.8` with Spring Boot `3.3.4` →
+   `3.5.16`. Spring AI 2.x needs Boot 4 (Spring Framework 7, Jackson 3),
+   which would mean refactoring the M1-M3 code; the 1.1.x line runs on
+   Boot 3.5.
+3. **Secrets.** The key is read only from `GEMINI_API_KEY`. Only
+   `spring.ai.google.genai.api-key` is set: no `project-id` or `location`,
+   which switch Spring AI to Vertex AI and reject the free key. Tests use a
+   dummy key and a mocked model, so CI never calls Gemini.
+4. **Package.** AI code lives in `com.shuttleflow.ai` and is reached through
+   one `AiController`. Tools call the existing services, never repositories
+   or SQL, so every write keeps the `FOR UPDATE` lock, the
+   `UNIQUE (active_slot_id)` backstop and the `SessionAuth` RBAC guards.
+5. **Per-request tools carry the session.** The chat endpoint builds a
+   `BookingTools` object holding the caller's `HttpSession`. The session is
+   never a tool argument, so the model cannot act as another user.
+6. **Confirm-before-write in code.** Writes are split into `proposeX` and
+   `confirmX` tools. `propose` stores a pending action tagged with the chat
+   turn number; `confirm` runs only for a pending action from an earlier
+   turn, so a human message always sits between propose and commit.
+7. **Reminder agent (autonomous task).** A `@Scheduled` job finds `BOOKED`
+   appointments starting within 24h, has the LLM write a reminder and queues
+   it through `NotificationService` as `APPOINTMENT_REMINDER` with key
+   `REMINDER:<appointmentId>`. The M3 outbox sends it with the same retry and
+   idempotency rules.
+8. **RAG.** A hand-written policy file is embedded into the in-memory
+   `SimpleVectorStore` at startup. No extra container.
+9. **Bonus: self-check.** Before a reminder is queued, code checks that the
+   text names the right court/coach and start time. On a mismatch, an LLM
+   error or a 429, the agent uses the template message instead.

@@ -35,8 +35,9 @@
 32. 2026-10-27 — Alex Nguyen — Added Milestone3/ to .gitignore (already-tracked M3 files stay tracked, same as Milestone2/) and wrote the local-only Milestone3/video_script3.md, a ~5.5-minute code walkthrough script.
 33. 2026-10-28 — Alex Nguyen — Planned Milestone 4 (Enterprise AI): wrote Milestone4/milestone4plan.md and Milestone4/m4-checklist.md covering the Gemini tool-calling chat agent with code-enforced confirm-before-write, the scheduled LLM reminder agent on the M3 outbox, SimpleVectorStore RAG over a policy file, the required agent double-booking test, and a self-check bonus.
 34. 2026-11-16 — Alex Nguyen — Removed the finished Milestone2/voice_script2.md and Milestone3/distribution-diagram.png and pointed the README at the remaining distribution-diagram.svg; the suite passes 91 tests (1 skipped) on JDK 17.
+35. 2026-11-16 — Alex Nguyen — Recorded the M4 decisions in docs/decisions.md (gemini-3.5-flash-lite and gemini-embedding-001 on the free tier, Spring AI 1.1.8 on Spring Boot 3.5.16, the ai package, per-request session tools, propose/confirm turn check, reminder agent, SimpleVectorStore, self-check bonus) (M4 item 1).
 
 ## What's next
-**Record the Milestone 4 decisions in docs/decisions.md (M4 item 1): Gemini model gemini-3.5-flash-lite (newest free-tier Flash-Lite, chosen 2026-11-16), Spring AI version, the ai package, per-request tools carrying the session, propose/confirm with turn check, reminder task, SimpleVectorStore and the self-check bonus.**
+**Upgrade Spring Boot from 3.3.4 to 3.5.16 with no AI code yet, keeping the full suite green (M4 item 2).**
 
-**Why this is next:** every later M4 item (Boot upgrade, Spring AI wiring, tools, agents, RAG) builds on these choices, and the Spring AI version must still be confirmed before the dependency changes in items 2-3.
+**Why this is next:** Spring AI 1.1.8 needs Boot 3.5, so the upgrade must land and pass on its own before the Spring AI and Gemini dependencies are added in item 3.
