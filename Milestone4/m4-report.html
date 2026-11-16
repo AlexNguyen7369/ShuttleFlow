@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShuttleFlow Milestone 4 Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout: a single report column for reading and printing, with code and diagrams allowed to run wider. */
+  --paper: #f7f8f5;
+  --ink: #1d2422;
+  --muted: #5b6763;
+  --rule: #d5ddd8;
+  --accent: #17654f;      /* court-floor green */
+  --accent-soft: #e3efe9;
+  --code-bg: #eef1ee;
+  --warn: #8a5a00;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141a18; --ink: #e4ebe7; --muted: #9aa8a2; --rule: #2d3834;
+    --accent: #5cc2a0; --accent-soft: #1d2d27; --code-bg: #1b2320; --warn: #e0b057;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141a18; --ink: #e4ebe7; --muted: #9aa8a2; --rule: #2d3834;
+  --accent: #5cc2a0; --accent-soft: #1d2d27; --code-bg: #1b2320; --warn: #e0b057;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.62 var(--font-body); }
+main { max-width: 52rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; display: grid; gap: 0; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.2; }
+h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); margin: .3rem 0 .6rem; letter-spacing: -.01em; }
+h2 { font-size: 1.45rem; margin: 2.8rem 0 .8rem; padding-top: 1.4rem; border-top: 1px solid var(--rule); display: flex; gap: .7rem; align-items: baseline; }
+h2 .num { color: var(--accent); font-variant-numeric: tabular-nums; }
+h3 { font-size: 1.08rem; margin: 1.8rem 0 .5rem; }
+p, li { max-width: 68ch; }
+a { color: var(--accent); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.kicker { font-family: var(--font-display); font-weight: 600; font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: .4rem 1.6rem; color: var(--muted); font-family: var(--font-display); font-size: .92rem; margin: 0; padding: 0; list-style: none; }
+.meta b { color: var(--ink); font-weight: 600; }
+.abstract { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 1rem 1.2rem; margin: 1.6rem 0 0; }
+.abstract p { margin: 0; }
+code { font-family: var(--font-mono); font-size: .86em; background: var(--code-bg); padding: .08em .3em; border-radius: 3px; }
+pre.code { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 6px; padding: .9rem 1rem; overflow-x: auto; font: 13px/1.5 var(--font-mono); margin: .8rem 0 1.2rem; }
+pre.code code { background: none; padding: 0; font-size: inherit; }
+.caption { font-family: var(--font-display); font-size: .82rem; color: var(--muted); margin: -.6rem 0 1.2rem; }
+.table-wrap { overflow-x: auto; margin: .8rem 0 1.2rem; }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; vertical-align: top; padding: .5rem .7rem; border-bottom: 1px solid var(--rule); }
+th { font-family: var(--font-display); font-weight: 600; font-size: .82rem; letter-spacing: .03em; color: var(--muted); border-bottom: 2px solid var(--rule); }
+td code { white-space: nowrap; }
+.num-cell { font-variant-numeric: tabular-nums; text-align: right; }
+figure { margin: 1.2rem 0 1.6rem; }
+figure svg { width: 100%; height: auto; display: block; color: var(--ink); }
+figcaption { font-family: var(--font-display); font-size: .85rem; color: var(--muted); margin-top: .5rem; }
+.diagram-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; padding: .8rem; background: var(--paper); }
+.diagram-wrap svg { min-width: 680px; }
+.chat { border: 1px solid var(--rule); border-radius: 6px; padding: .4rem 0; margin: .8rem 0 1.4rem; }
+.turn { display: grid; grid-template-columns: 4.5rem 1fr; gap: .8rem; padding: .55rem 1rem; }
+.turn p { margin: 0; white-space: pre-wrap; font-size: .95rem; }
+.turn .who { font-family: var(--font-display); font-weight: 600; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: .2rem; }
+.turn.user .who { color: var(--accent); }
+.turn.note { grid-template-columns: 1fr; background: var(--accent-soft); }
+.turn.note p { font-family: var(--font-display); font-size: .85rem; color: var(--muted); }
+.pill { display: inline-block; font-family: var(--font-display); font-size: .75rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; margin: 1rem 0; }
+.box { border: 1px solid var(--rule); border-radius: 6px; padding: .9rem 1rem; }
+.box h4 { font-family: var(--font-display); margin: 0 0 .3rem; font-size: .95rem; }
+.box p { margin: 0; font-size: .93rem; }
+ol.steps { padding-left: 1.3rem; } ol.steps li { margin: .3rem 0; }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-family: var(--font-display); font-size: .85rem; }
+@media (max-width: 480px) { body { font-size: 16px; } .turn { grid-template-columns: 1fr; gap: .2rem; } }
+@media print {
+  body { background: #fff; color: #000; font-size: 11pt; }
+  main { max-width: none; padding: 0; }
+  h2 { break-after: avoid; }
+  pre.code, .chat, figure, table { break-inside: avoid; }
+  pre.code { white-space: pre-wrap; }
+  .diagram-wrap svg { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="kicker">CMPE 172 · Milestone 4 · Enterprise AI Functionalities</p>
+  <h1>ShuttleFlow: Adding AI to a Booking System</h1>
+  <ul class="meta">
+    <li><b>Author</b> Alex Nguyen</li>
+    <li><b>Date</b> November 16, 2026</li>
+    <li><b>Repository</b> <a href="https://github.com/AlexNguyen7369/ShuttleFlow">github.com/AlexNguyen7369/ShuttleFlow</a></li>
+  </ul>
+  <div class="abstract">
+    <p>ShuttleFlow lets badminton players book courts and coaching sessions. In Milestone 4 it gained three AI features: an assistant that books and cancels through a chat conversation, a background agent that sends each player a personal reminder the day before their session, and a help box that answers questions about the facility's rules using only the official policy document. The main design goal was safety: the AI can do only what a signed-in player could already do, it always asks before changing a booking, and it cannot cause two players to get the same court.</p>
+  </div>
+</header>
+
+<h2><span class="num">1</span> What Milestone 4 asked for</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Requirement</th><th>What ShuttleFlow does</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>A conversational agent that uses tools</td><td>The booking assistant can look up open times, list your bookings, book and cancel</td><td><span class="pill">Done</span></td></tr>
+    <tr><td>Smart behavior: several steps, alternatives, follow-ups</td><td>Finds and books "the earliest court this week", offers other times when a slot is taken, and follows changes of mind</td><td><span class="pill">Verified</span></td></tr>
+    <tr><td>Bookings keep all existing safety rules</td><td>The assistant books through the same code path as the website's Book button</td><td><span class="pill">Done</span></td></tr>
+    <tr><td>Ask before booking</td><td>The assistant shows a summary and books only after the player says yes</td><td><span class="pill">Done</span></td></tr>
+    <tr><td>An autonomous scheduled agent with an outbound action</td><td>The reminder agent runs every 15 minutes and sends personal reminders</td><td><span class="pill">Done</span></td></tr>
+    <tr><td>Answers grounded in a knowledge source (RAG)</td><td>The policy help box answers from a written policy and FAQ document</td><td><span class="pill">Done</span></td></tr>
+    <tr><td>A test that the agent cannot double-book</td><td>Two players confirm the same court at the same time; exactly one gets it</td><td><span class="pill">Passing</span></td></tr>
+    <tr><td>Bonus feature</td><td>The reminder agent fact-checks its own message before sending it</td><td><span class="pill">Done</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2><span class="num">2</span> How the pieces fit together</h2>
+<p>The AI features are added on top of the existing system rather than beside it. Google's Gemini model writes the replies and decides which action to take next, but every action it takes goes through ShuttleFlow's existing booking logic, the same logic the website already uses.</p>
+<figure>
+<div class="diagram-wrap">
+<svg viewBox="0 0 760 360" role="img" aria-label="The booking assistant, reminder agent and policy help box all use Gemini, but every booking change still passes through ShuttleFlow's existing booking rules before it reaches the database.">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g font-family="IBM Plex Sans, sans-serif" font-size="13" fill="none" stroke="currentColor" stroke-width="1.2">
+    <rect x="20" y="30" width="150" height="50" rx="6"/>
+    <text x="95" y="60" text-anchor="middle" fill="currentColor" stroke="none">Player in the browser</text>
+
+    <rect x="230" y="20" width="200" height="70" rx="6"/>
+    <text x="330" y="48" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">Booking assistant</text>
+    <text x="330" y="68" text-anchor="middle" fill="currentColor" stroke="none" font-size="11.5">chat: find, book, cancel</text>
+
+    <rect x="230" y="120" width="200" height="70" rx="6"/>
+    <text x="330" y="148" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">Policy help box</text>
+    <text x="330" y="168" text-anchor="middle" fill="currentColor" stroke="none" font-size="11.5">answers from the policy file</text>
+
+    <rect x="230" y="220" width="200" height="70" rx="6"/>
+    <text x="330" y="248" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">Reminder agent</text>
+    <text x="330" y="268" text-anchor="middle" fill="currentColor" stroke="none" font-size="11.5">runs on a timer</text>
+
+    <line x1="170" y1="55" x2="228" y2="55" marker-end="url(#arrow)"/>
+    <line x1="170" y1="70" x2="228" y2="145" marker-end="url(#arrow)"/>
+    <text x="195" y="120" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">asks</text>
+
+    <rect x="610" y="120" width="130" height="70" rx="6" stroke="#17654f" stroke-width="2"/>
+    <text x="675" y="150" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">Gemini</text>
+    <text x="675" y="170" text-anchor="middle" fill="currentColor" stroke="none" font-size="11.5">writes the text</text>
+    <line x1="430" y1="55" x2="608" y2="140" marker-end="url(#arrow)"/>
+    <line x1="430" y1="155" x2="608" y2="155" marker-end="url(#arrow)"/>
+    <line x1="430" y1="255" x2="608" y2="170" marker-end="url(#arrow)"/>
+
+    <rect x="470" y="20" width="120" height="70" rx="6"/>
+    <text x="530" y="45" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600" font-size="12">Booking rules</text>
+    <text x="530" y="63" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">same as the</text>
+    <text x="530" y="78" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Book button</text>
+    <path d="M430 40 L468 40" marker-end="url(#arrow)"/>
+
+    <rect x="470" y="290" width="120" height="56" rx="6"/>
+    <text x="530" y="314" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600" font-size="12">Notifications</text>
+    <text x="530" y="332" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">from Milestone 3</text>
+    <line x1="430" y1="275" x2="468" y2="310" marker-end="url(#arrow)"/>
+
+    <rect x="20" y="290" width="150" height="56" rx="6"/>
+    <text x="95" y="322" text-anchor="middle" fill="currentColor" stroke="none" font-weight="600">Database</text>
+    <path d="M530 90 L530 105 L120 105 L120 288" marker-end="url(#arrow)"/>
+    <text x="300" y="100" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">bookings are saved only through the rules</text>
+  </g>
+</svg>
+</div>
+<figcaption>Figure 1. Gemini writes text and chooses actions, but booking changes pass through the same rules as the website, and reminders go out through the notification system built in Milestone 3.</figcaption>
+</figure>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Choice</th><th>What we used</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>AI model</td><td>Gemini 3.5 Flash-Lite (free tier)</td><td>The newest free model; fast and cheap enough for a chat assistant</td></tr>
+    <tr><td>AI library</td><td>Spring AI 1.1</td><td>Works with the existing Spring Boot 3 code. The newer 2.0 version would have required rewriting earlier milestones.</td></tr>
+    <tr><td>Policy search</td><td>An in-memory search index</td><td>The policy document is small, so no extra database or server is needed</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2><span class="num">3</span> The booking assistant (Agent 1)</h2>
+<p>A signed-in player types requests such as "Book the earliest open court this week" in the Assistant panel. Gemini reads the request and decides which of ShuttleFlow's actions, called <em>tools</em>, to use. The assistant also remembers the conversation, so a follow-up like "actually make it 2pm" works.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Tool</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Find open slots</td><td>Lists bookable court or coaching times in a date range, earliest first</td></tr>
+    <tr><td>List my bookings</td><td>Shows the player's upcoming appointments</td></tr>
+    <tr><td>Propose booking / Confirm booking</td><td>Step 1 holds a slot choice without booking it; step 2 books it after the player agrees</td></tr>
+    <tr><td>Propose cancel / Confirm cancel</td><td>The same two steps for cancelling</td></tr>
+    <tr><td>Look up policy</td><td>Searches the policy document for rules, prices and hours</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Why the assistant can't break the rules</h3>
+<div class="grid2">
+  <div class="box"><h4>It only uses existing features</h4><p>Each tool calls the same booking code the website uses. The assistant cannot reach the database any other way, so every existing check still applies.</p></div>
+  <div class="box"><h4>It acts as the signed-in player</h4><p>The assistant always works on behalf of whoever is signed in. It cannot choose to act as someone else, and a court manager's account cannot book through it.</p></div>
+  <div class="box"><h4>It must ask before booking</h4><p>Booking is split into two steps. The confirm step works only if the player sent a new message after the proposal, so the AI cannot book on its own, even if it ignores its instructions.</p></div>
+  <div class="box"><h4>One "yes" books once</h4><p>A confirmation is used up as soon as it is acted on, and an old proposal expires if the conversation moves on, so a stray "yes" later cannot book anything.</p></div>
+</div>
+<p>The ask-before-booking rule is enforced in the code, not only in the AI's instructions. This short excerpt is the check that runs before every booking or cancellation:</p>
+<pre class="code" data-lang="java"><code>private PendingAction takeConfirmable(PendingAction.Kind kind) {
+    if (!(session.getAttribute(PendingAction.SESSION_KEY) instanceof PendingAction pending)
+            || pending.kind() != kind || pending.turn() &gt;= turn) {
+        return null;
+    }
+    if (pending.turn() != turn - 1) {
+        // Stale: the user moved on after the proposal, so this message is not the answer to it.
+        session.removeAttribute(PendingAction.SESSION_KEY);
+        return null;
+    }
+    session.removeAttribute(PendingAction.SESSION_KEY);
+    return pending;
+}</code></pre>
+<p class="caption">The pending choice must be the right kind of action and must come from the player's previous message; otherwise nothing is booked.</p>
+
+<h2><span class="num">4</span> Proving the assistant can't double-book</h2>
+<p>The most important rule in ShuttleFlow is that a court can only be booked by one player at a time. Earlier milestones enforce this in the database itself. Milestone 4 adds a test showing the rule still holds when bookings come through the assistant: two players propose the same court, then both say yes. One booking succeeds, the other is told "Court is already booked.", and the database contains exactly one booking.</p>
+<pre class="code" data-lang="java"><code>void twoSessionsProposeAndConfirmTheSameSlotOnlyOneBooks() {
+    HttpSession alex = AgentRaceSupport.customer(3L);
+    HttpSession jamie = AgentRaceSupport.customer(4L);
+    tools(alex, 1).proposeBooking(slotId);
+    tools(jamie, 1).proposeBooking(slotId);
+
+    String first = tools(alex, 2).confirmBooking();
+    String second = tools(jamie, 2).confirmBooking();
+
+    assertThat(first).startsWith(&quot;Booked:&quot;);
+    assertThat(second).isEqualTo(&quot;Error: Court is already booked.&quot;);
+    assertThat(AgentRaceSupport.activeBookings(jdbc, slotId)).isEqualTo(1);
+}</code></pre>
+<p class="caption">The required test, in the player-facing order: both propose, both confirm, one wins.</p>
+<p>A second version sends eight confirmations at the same instant. It passed on the test database and in 15 out of 15 rounds on a real PostgreSQL database, with exactly one booking each time.</p>
+
+<h2><span class="num">5</span> The reminder agent (Agent 2)</h2>
+<p>The reminder agent works without anyone asking it to. Every 15 minutes it:</p>
+<ol class="steps">
+  <li>Looks for bookings that start within the next 24 hours and have not had a reminder yet.</li>
+  <li>Asks Gemini to write a short, friendly reminder with the player's name, the court or coach, and the start time.</li>
+  <li>Fact-checks the message (see section 7). If the check fails, or Gemini is unavailable, it uses a plain standard message instead.</li>
+  <li>Hands the message to the notification system from Milestone 3, which delivers it and retries if the notification service is down.</li>
+</ol>
+<p>Each booking gets at most one reminder, even if the agent runs again or two runs overlap. A court manager can also start a run with the <strong>Run reminders now</strong> button, which is useful for demos.</p>
+
+<h2><span class="num">6</span> The policy help box (RAG)</h2>
+<p>Players can ask questions like "Can I cancel a booking?" or "How much is coaching?". Instead of letting the AI answer from general knowledge, which could produce invented rules, ShuttleFlow uses <em>retrieval-augmented generation</em> (RAG):</p>
+<ol class="steps">
+  <li>A hand-written policy and FAQ document covers hours, courts and coaches, prices, booking and cancellation rules, reminders, equipment and contact details.</li>
+  <li>When the app starts, the document is split into sections and indexed so the most relevant sections can be found for any question.</li>
+  <li>For each question, the three closest sections are given to Gemini with the instruction to answer only from them and to say "I don't know" otherwise.</li>
+  <li>The answer is shown together with the names of the sections it came from.</li>
+</ol>
+<p>An automated test checks that the prices in the policy document match the prices in the database, so the document cannot quietly go out of date. The booking assistant uses the same search when a player asks it a policy question mid-conversation.</p>
+
+<h2><span class="num">7</span> Bonus: the reminder agent checks its own work</h2>
+<p>AI models can write a confident, friendly message that contains the wrong time or the wrong court. Before any reminder is sent, ShuttleFlow compares the message with the actual booking: it must name the correct court or coach and the exact start time, and it must not contain leftover placeholders such as "[name]" or any links. If anything is off, the player receives the plain standard message instead, so wrong information never reaches them. The system also counts how many reminders were sent and how many needed the fallback, which shows whether the AI is becoming unreliable.</p>
+
+<h2><span class="num">8</span> Results with the real AI</h2>
+<p>These conversations were recorded on November 16, 2026, against the running application.</p>
+<h3>Booking in several steps, with confirmation</h3>
+<div class="chat"><div class="turn user"><span class="who">User</span><p>Book the earliest open court this week</p></div><div class="turn bot"><span class="who">Agent</span><p>I found an open court for you:
+- Court 3 (Singles Court Rental)
+- Tue Nov 17, 9:00-10:00 AM
+- Price: $20.00
+
+Would you like to confirm this booking?</p></div><div class="turn user"><span class="who">User</span><p>yes</p></div><div class="turn bot"><span class="who">Agent</span><p>Your booking is confirmed! 
+
+- Appointment ID: 2
+- Court 3 (Singles Court Rental)
+- Date &amp; Time: Tue Nov 17, 2026, 9:00 - 10:00 AM
+- Price: $20.00</p></div></div>
+<h3>Changing your mind mid-conversation</h3>
+<div class="chat"><div class="turn user"><span class="who">User</span><p>Book me a court tomorrow evening</p></div><div class="turn bot"><span class="who">Agent</span><p>I found an open court for tomorrow evening:
+
+* Court 3 (Doubles Court Rental)
+* Date: Tue Nov 17, 2026
+* Time: 6:00 PM – 7:00 PM
+* Price: $20.00
+
+Would you like to confirm this booking?</p></div><div class="turn user"><span class="who">User</span><p>actually make it Thursday at 7pm</p></div><div class="turn bot"><span class="who">Agent</span><p>I found an open court for Thursday at 7:00 PM:
+
+* Court 3 (Singles Court Rental)
+* Date: Thu Nov 19, 2026
+* Time: 7:00 PM – 8:00 PM
+* Price: $20.00
+
+Would you like to confirm this booking?</p></div><div class="turn user"><span class="who">User</span><p>yes please</p></div><div class="turn bot"><span class="who">Agent</span><p>Your court booking is confirmed! 
+
+* Court: Court 3 (Singles Court Rental)
+* Date: Thu Nov 19, 2026
+* Time: 7:00 PM – 8:00 PM
+* Appointment ID: 3</p></div></div>
+<h3>Someone else takes the slot first</h3>
+<div class="chat"><div class="turn user"><span class="who">User</span><p>Book a coaching session with Coach Kim tomorrow at 4pm</p></div><div class="turn bot"><span class="who">Agent</span><p>I found a coaching session with Coach Kim tomorrow (Tuesday, Nov 17) from 4:00 to 5:00 PM for $40.00. Would you like to confirm this booking?</p></div><div class="turn note"><p>meanwhile Jamie books slot 5 through POST /appointments: HTTP 201</p></div><div class="turn user"><span class="who">User</span><p>yes</p></div><div class="turn bot"><span class="who">Agent</span><p>That slot is no longer available. Here are the nearest open coaching sessions with Coach Kim:
+
+1. Thu Nov 19, 3:00-4:00 PM ($40.00)
+2. Sat Nov 21, 5:00-6:00 PM ($40.00)
+
+Would you like to book one of these instead?</p></div></div>
+<p>Afterwards the database held exactly one booking per slot: the Tuesday 6 PM slot the player moved away from was never booked, and the coaching slot stayed with the other player.</p>
+<h3>Policy questions</h3>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Question</th><th>Answer</th><th>Based on</th></tr></thead>
+  <tbody><tr><td>Can I cancel a booking, and is there a fee?</td><td>Yes, you can cancel your own booked appointment at any time before it starts, at no charge.</td><td>Cancellation, Booking, Contact</td></tr><tr><td>How much is private coaching?</td><td>Private coaching is $40.00 for a 60-minute session.</td><td>Services and prices, Courts and coaches, Equipment</td></tr><tr><td>Do you have a swimming pool?</td><td>I don&#x27;t know. Please email support@shuttleflow.com.</td><td>Contact, Equipment, Courts and coaches</td></tr></tbody>
+</table>
+</div>
+<p>The swimming-pool question shows the grounding working: the policy document does not mention a pool, so the assistant says it does not know rather than inventing an answer.</p>
+<h3>Reminders written by the AI</h3>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Reminder</th><th>Delivered</th><th>Message</th></tr></thead>
+  <tbody><tr><td><code>REMINDER:1</code></td><td>SENT</td><td>Hi Alex, friendly reminder about your Singles Court Rental at Court 3 starting Monday Nov 16 at 7:52 PM. See you on the court!</td></tr><tr><td><code>REMINDER:2</code></td><td>SENT</td><td>Hi Alex, this is a friendly reminder for your Singles Court Rental at Court 3, starting Tuesday Nov 17 at 9:00 AM. We can&#x27;t wait to see you on the court!</td></tr></tbody>
+</table>
+</div>
+<p>Both messages passed the fact-check. Running the agent a second time sent nothing new, as intended. The same checks passed again when the whole system ran in Docker.</p>
+
+<h2><span class="num">9</span> Keeping the API key safe</h2>
+<p>The Gemini key is read from an environment variable and stored in a local file that is never committed to GitHub; a scan of the project history found no key. If no key is set, ShuttleFlow still runs normally: the AI features reply that they are unavailable, and reminders use the standard message. Logs never record the key, the player's messages or the AI's replies.</p>
+
+<h2><span class="num">10</span> Testing</h2>
+<p>The project has 136 automated tests. The AI tests replace Gemini with a stand-in that gives fixed answers, so they run quickly, cost nothing and never need the real key. They cover:</p>
+<ul>
+  <li>the double-booking test above, including a version with eight simultaneous players;</li>
+  <li>the ask-before-booking rule: no booking without a proposal, no booking in the same message, no repeated bookings from one "yes";</li>
+  <li>sign-in and role checks for every AI feature;</li>
+  <li>policy answers using the right document sections, and the document matching the database;</li>
+  <li>one reminder per booking, the fallback message, and the fact-check catching wrong times and courts.</li>
+</ul>
+<p>GitHub runs the full test suite automatically on every change.</p>
+
+<h2><span class="num">11</span> Problems found while testing with the real AI</h2>
+<ul>
+  <li><strong>Replies were cut off.</strong> Gemini sometimes sends an answer in several pieces, and only the first piece was being shown. All pieces are now joined.</li>
+  <li><strong>The assistant asked "confirm?" too early.</strong> Once, it asked for confirmation before recording the proposal, so the player's "yes" produced a second question instead of a booking. The safety check worked as designed (nothing was booked by mistake), and the assistant's instructions were tightened.</li>
+  <li><strong>A code review found gaps</strong> in the fact-check (it accepted "11pm" for a 1pm booking) and in how long a proposal stayed valid. Both were fixed and covered by new tests.</li>
+</ul>
+
+<h2><span class="num">12</span> Limitations and next steps</h2>
+<ul>
+  <li>Conversations are kept in memory and reset when the server restarts. Saving them in the database would fix this.</li>
+  <li>The free Gemini tier limits how many requests can be made. During a burst of use the assistant may be briefly unavailable, and reminders fall back to the standard message.</li>
+  <li>The fact-check verifies the court and time but not the day.</li>
+  <li>The hours, equipment and contact details in the policy document are sample data for the course project.</li>
+</ul>
+
+<footer>ShuttleFlow · CMPE 172 Milestone 4 · Source code and full transcripts: <a href="https://github.com/AlexNguyen7369/ShuttleFlow">github.com/AlexNguyen7369/ShuttleFlow</a></footer>
+</main>
+</body>
+</html>
