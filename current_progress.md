@@ -59,8 +59,9 @@
 56. 2026-11-17 — Alex Nguyen — Replaced the static frontend/ with a Next.js 16.4.5 app (React 19.3.1, App Router, JavaScript): home, login, browse and book, my bookings, provider workspace and AI assistant pages, an auth context restored from GET /auth/session, and an /api rewrite to the API so the JWT cookie is first-party; npm run build passes, a smoke test through the proxy covered login, booking, chat, reminders and logout, and CI gained a frontend build job.
 57. 2026-11-17 — Alex Nguyen — Updated the docs for JWT and Next.js: README (stack, Node prerequisite, run steps with npm run dev and JWT_SECRET, auth endpoints, authentication section, browser client, test table with JwtServiceTest), CLAUDE.md and AGENTS.md (stack, auth and layout), and the login and chat-agent feature specs.
 58. 2026-11-17 — Alex Nguyen — Fixed the PR #1 review findings: the ai_conversations row is now created outside any transaction (a caught duplicate key aborted the PostgreSQL transaction), chat is limited to one message at a time per user (409 otherwise) so a confirm cannot answer an unseen proposal, and the frontend signs out on an expired token and clears the user even if logout fails; added a PostgreSQL first-message race test and a concurrent-chat test; 146 tests pass, 18/18 PostgreSQL runs pass.
+59. 2026-11-17 — Alex Nguyen — Reviewed pull request #1 (Next.js frontend and JWT login), fixed its findings, and merged it into main as 007b18d with CI green on both the backend and frontend jobs.
 
 ## What's next
-**Review and merge feature/nextjs-jwt into main once CI is green on the branch, then rerun the Milestone 4 demo on the Next.js frontend.**
+**Rerun the Milestone 4 demo on the Next.js frontend (sign in, book and confirm by chat, policy questions, run reminders), then record the walkthrough video from Milestone4/video_script4.txt, including its JWT and Next.js section.**
 
-**Why this is next:** the Next.js and JWT work is complete on the branch; merging makes it the version the README describes, and the M4 demo should be checked on the new UI before recording.
+**Why this is next:** the merged main is now the version the video and README describe, so the demo must be checked on the new UI before recording.
