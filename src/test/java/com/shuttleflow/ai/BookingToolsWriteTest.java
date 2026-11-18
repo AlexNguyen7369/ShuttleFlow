@@ -110,7 +110,7 @@ class BookingToolsWriteTest {
     void reProposingTheSameCancelOnTheYesTurnStillConfirms() {
         turn(1).proposeCancel(50);
         BookingTools yesTurn = turn(2);
-        yesTurn.proposeCancel(50);
+        assertThat(yesTurn.proposeCancel(50)).contains("already proposed").contains("call confirmCancel now");
 
         assertThat(yesTurn.confirmCancel()).isEqualTo("Cancelled appointmentId=50.");
         verify(appointmentService).cancel(50L, session);

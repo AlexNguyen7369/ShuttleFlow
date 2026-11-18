@@ -111,7 +111,9 @@ public class BookingTools {
         if (slotId < 1) {
             return "Error: slotId must be a positive number.";
         }
-        conversations.propose(userId, AiConversationService.BOOK, slotId, turn);
+        if (conversations.propose(userId, AiConversationService.BOOK, slotId, turn)) {
+            return alreadyProposed("Booking of slotId=" + slotId, "confirmBooking");
+        }
         return "Booking of slotId=" + slotId + " is proposed but NOT booked. Ask the user to confirm.";
     }
 
@@ -136,7 +138,9 @@ public class BookingTools {
         if (appointmentId < 1) {
             return "Error: appointmentId must be a positive number.";
         }
-        conversations.propose(userId, AiConversationService.CANCEL, appointmentId, turn);
+        if (conversations.propose(userId, AiConversationService.CANCEL, appointmentId, turn)) {
+            return alreadyProposed("Cancellation of appointmentId=" + appointmentId, "confirmCancel");
+        }
         return "Cancellation of appointmentId=" + appointmentId + " is proposed but NOT done. Ask the user to confirm.";
     }
 
@@ -151,6 +155,12 @@ public class BookingTools {
             appointmentService.cancel(appointmentId.get(), caller);
             return "Cancelled appointmentId=" + appointmentId.get() + ".";
         });
+    }
+
+    // Without this the model re-asks on the "yes" turn instead of confirming (seen with Gemini).
+    private String alreadyProposed(String what, String confirmTool) {
+        return what + " was already proposed in your previous reply and is waiting. If the user's message "
+                + "says yes, call " + confirmTool + " now instead of asking again.";
     }
 
     private String refusal(String what) {
