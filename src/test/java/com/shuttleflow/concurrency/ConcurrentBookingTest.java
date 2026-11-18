@@ -5,13 +5,11 @@ import com.shuttleflow.dto.AppointmentDto;
 import com.shuttleflow.dto.BookingRequest;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.BookingConflictException;
-import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpSession;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -65,8 +63,7 @@ class ConcurrentBookingTest {
     }
 
     private Object attempt(long userId, String email, CountDownLatch ready, CountDownLatch start) {
-        HttpSession session = new MockHttpSession();
-        session.setAttribute(UserSession.ATTRIBUTE, new UserSession(userId, email, email, "CUSTOMER", null));
+        UserSession session = new UserSession(userId, email, email, "CUSTOMER", null);
         ready.countDown();
         try {
             start.await();

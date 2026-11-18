@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.servlet.http.HttpSession;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -49,8 +48,8 @@ public class AppointmentService {
      * final (the slot is taken), so retrying could never succeed.
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public AppointmentDto book(BookingRequest request, HttpSession session) {
-        UserSession user = sessionAuth.requireCustomer(session);
+    public AppointmentDto book(BookingRequest request, UserSession caller) {
+        UserSession user = sessionAuth.requireCustomer(caller);
         if (request == null || request.getSlotId() == null || request.getSlotId() < 1) {
             throw new InvalidRequestException("slotId must be a positive number.");
         }
@@ -89,8 +88,8 @@ public class AppointmentService {
         return booked;
     }
 
-    public List<AppointmentDto> list(String view, HttpSession session) {
-        UserSession user = sessionAuth.requireCustomer(session);
+    public List<AppointmentDto> list(String view, UserSession caller) {
+        UserSession user = sessionAuth.requireCustomer(caller);
         String normalized = view == null || view.isBlank() ? "upcoming" : view;
         if (!normalized.equals("upcoming") && !normalized.equals("history")) {
             throw new InvalidRequestException("view must be upcoming or history.");
@@ -100,8 +99,8 @@ public class AppointmentService {
 
     /** Cancels an owned upcoming appointment and reopens its slot in one transaction. */
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public void cancel(long appointmentId, HttpSession session) {
-        UserSession user = sessionAuth.requireCustomer(session);
+    public void cancel(long appointmentId, UserSession caller) {
+        UserSession user = sessionAuth.requireCustomer(caller);
         if (appointmentId < 1) {
             throw new InvalidRequestException("appointmentId must be a positive number.");
         }

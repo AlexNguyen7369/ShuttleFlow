@@ -1,5 +1,6 @@
 package com.shuttleflow.ai;
 
+import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.dto.AppointmentDto;
 import com.shuttleflow.dto.SlotDto;
 import com.shuttleflow.service.AiConversationService;
@@ -8,7 +9,6 @@ import com.shuttleflow.service.SlotService;
 import com.shuttleflow.service.UnauthorizedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpSession;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -32,14 +32,14 @@ class BookingToolsReadTest {
     private final LocalDate today = LocalDate.now();
     private SlotService slotService;
     private AppointmentService appointmentService;
-    private MockHttpSession session;
+    private UserSession session;
     private BookingTools tools;
 
     @BeforeEach
     void setUp() {
         slotService = mock(SlotService.class);
         appointmentService = mock(AppointmentService.class);
-        session = new MockHttpSession();
+        session = new UserSession(3L, "alex@shuttleflow.com", "Alex Nguyen", "CUSTOMER", null);
         tools = new BookingTools(slotService, appointmentService, mock(AiConversationService.class), session, 3L, 1);
     }
 

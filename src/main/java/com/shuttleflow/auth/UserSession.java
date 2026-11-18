@@ -1,9 +1,7 @@
 package com.shuttleflow.auth;
 
-/** Immutable identity stored in the server-side HTTP session. */
+/** Immutable identity of the signed-in caller, carried in the login token (JWT). */
 public final class UserSession {
-
-    public static final String ATTRIBUTE = UserSession.class.getName();
 
     private final long userId;
     private final String email;

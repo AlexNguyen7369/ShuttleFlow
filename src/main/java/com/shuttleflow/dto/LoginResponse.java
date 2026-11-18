@@ -1,6 +1,6 @@
 package com.shuttleflow.dto;
 
-/** Safe login response; credentials and session internals are excluded. */
+/** Safe login response; credentials and the token itself are excluded (the token travels in an HttpOnly cookie). */
 public final class LoginResponse {
     private final long userId;
     private final String email;

@@ -1,5 +1,6 @@
 package com.shuttleflow.controller;
 
+import com.shuttleflow.auth.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shuttleflow.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpSession;
+import jakarta.servlet.http.Cookie;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -56,10 +57,10 @@ class NotificationIntegrationTest {
     @Test
     void cancelSucceedsWhileNotificationServiceIsDownAndQueuesCancelledNotification() throws Exception {
         long slotId = insertSlot(LocalDateTime.now().plusDays(3));
-        MockHttpSession customer = login("alex@shuttleflow.com", "alex-test");
+        Cookie customer = login("alex@shuttleflow.com", "alex-test");
         long appointmentId = book(customer, slotId);
 
-        mvc.perform(delete("/appointments/" + appointmentId).session(customer)).andExpect(status().isNoContent());
+        mvc.perform(delete("/appointments/" + appointmentId).cookie(customer)).andExpect(status().isNoContent());
         assertEquals(1, count("SELECT COUNT(*) FROM notifications WHERE idempotency_key = 'CANCELLED:" + appointmentId + "'"));
     }
 
@@ -68,7 +69,7 @@ class NotificationIntegrationTest {
         long slotId = insertSlot(LocalDateTime.now().plusDays(3));
         book(login("alex@shuttleflow.com", "alex-test"), slotId);
 
-        mvc.perform(post("/appointments").session(login("jamie@shuttleflow.com", "jamie-test"))
+        mvc.perform(post("/appointments").cookie(login("jamie@shuttleflow.com", "jamie-test"))
                         .contentType("application/json").content("{\"slotId\":" + slotId + "}"))
                 .andExpect(status().isConflict());
         assertEquals(1, count("SELECT COUNT(*) FROM notifications"));
@@ -116,8 +117,8 @@ class NotificationIntegrationTest {
         throw new AssertionError("after-commit send never ran for " + key);
     }
 
-    private long book(MockHttpSession session, long slotId) throws Exception {
-        String body = mvc.perform(post("/appointments").session(session).contentType("application/json")
+    private long book(Cookie session, long slotId) throws Exception {
+        String body = mvc.perform(post("/appointments").cookie(session).contentType("application/json")
                         .content("{\"slotId\":" + slotId + "}"))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         return json.readTree(body).get("appointmentId").asLong();
@@ -138,9 +139,9 @@ class NotificationIntegrationTest {
                 Long.class, start);
     }
 
-    private MockHttpSession login(String email, String password) throws Exception {
-        return (MockHttpSession) mvc.perform(post("/auth/login").contentType("application/json")
+    private Cookie login(String email, String password) throws Exception {
+        return mvc.perform(post("/auth/login").contentType("application/json")
                         .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"))
-                .andExpect(status().isOk()).andReturn().getRequest().getSession(false);
+                .andExpect(status().isOk()).andReturn().getResponse().getCookie(JwtService.COOKIE_NAME);
     }
 }

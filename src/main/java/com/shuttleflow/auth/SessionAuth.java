@@ -2,34 +2,32 @@ package com.shuttleflow.auth;
 
 import com.shuttleflow.service.ForbiddenException;
 import com.shuttleflow.service.UnauthorizedException;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Component;
 
-/** Shared authentication boundary for controllers and services. */
+/**
+ * Shared authorization boundary for services. The caller is the identity from a verified login
+ * token (see JwtAuthFilter), or null when the request carries none.
+ */
 @Component
 public class SessionAuth {
 
-    public UserSession requireAuthenticated(HttpSession session) {
-        if (session == null) {
+    public UserSession requireAuthenticated(UserSession caller) {
+        if (caller == null) {
             throw new UnauthorizedException();
         }
-        Object identity = session.getAttribute(UserSession.ATTRIBUTE);
-        if (!(identity instanceof UserSession userSession)) {
-            throw new UnauthorizedException();
-        }
-        return userSession;
+        return caller;
     }
 
-    public UserSession requireCustomer(HttpSession session) {
-        UserSession user = requireAuthenticated(session);
+    public UserSession requireCustomer(UserSession caller) {
+        UserSession user = requireAuthenticated(caller);
         if (!"CUSTOMER".equals(user.getRole())) {
             throw new ForbiddenException();
         }
         return user;
     }
 
-    public UserSession requireProvider(HttpSession session) {
-        UserSession user = requireAuthenticated(session);
+    public UserSession requireProvider(UserSession caller) {
+        UserSession user = requireAuthenticated(caller);
         if (!"PROVIDER".equals(user.getRole()) || user.getProviderId() == null) {
             throw new ForbiddenException();
         }

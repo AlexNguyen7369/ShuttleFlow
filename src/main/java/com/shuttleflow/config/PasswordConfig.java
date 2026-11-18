@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-/** Shared password-hashing support for the session authentication service. */
+/** Shared password-hashing support for the authentication service. */
 @Configuration
 public class PasswordConfig {
 

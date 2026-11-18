@@ -1,12 +1,12 @@
 package com.shuttleflow.ai;
 
+import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.auth.SessionAuth;
 import com.shuttleflow.dto.ReminderRunDto;
 import com.shuttleflow.repository.AppointmentRepository;
 import com.shuttleflow.repository.AppointmentRepository.DueReminder;
 import com.shuttleflow.service.MetricsService;
 import com.shuttleflow.service.NotificationService;
-import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -68,8 +68,8 @@ public class ReminderAgent {
     }
 
     /** POST /ai/reminders/run: lets a provider trigger a run for the demo. */
-    public ReminderRunDto runAsProvider(HttpSession session) {
-        sessionAuth.requireProvider(session);
+    public ReminderRunDto runAsProvider(UserSession caller) {
+        sessionAuth.requireProvider(caller);
         return run();
     }
 

@@ -1,5 +1,6 @@
 package com.shuttleflow.controller;
 
+import com.shuttleflow.auth.JwtService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -7,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpSession;
+import jakarta.servlet.http.Cookie;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,9 +37,9 @@ class MetricsControllerTest {
         JsonNode before = metrics();
 
         String booking = "{\"slotId\":" + slotId + "}";
-        mvc.perform(post("/appointments").session(login("alex@shuttleflow.com", "alex-test"))
+        mvc.perform(post("/appointments").cookie(login("alex@shuttleflow.com", "alex-test"))
                 .contentType("application/json").content(booking)).andExpect(status().isCreated());
-        mvc.perform(post("/appointments").session(login("jamie@shuttleflow.com", "jamie-test"))
+        mvc.perform(post("/appointments").cookie(login("jamie@shuttleflow.com", "jamie-test"))
                 .contentType("application/json").content(booking)).andExpect(status().isConflict());
 
         JsonNode after = metrics();
@@ -51,9 +52,9 @@ class MetricsControllerTest {
                 .andReturn().getResponse().getContentAsString());
     }
 
-    private MockHttpSession login(String email, String password) throws Exception {
-        return (MockHttpSession) mvc.perform(post("/auth/login").contentType("application/json")
+    private Cookie login(String email, String password) throws Exception {
+        return mvc.perform(post("/auth/login").contentType("application/json")
                         .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"))
-                .andExpect(status().isOk()).andReturn().getRequest().getSession(false);
+                .andExpect(status().isOk()).andReturn().getResponse().getCookie(JwtService.COOKIE_NAME);
     }
 }

@@ -4,9 +4,7 @@ import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.service.AiConversationService;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.SlotService;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpSession;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,10 +32,8 @@ public final class AgentRaceSupport {
                 Long.class, start);
     }
 
-    public static HttpSession customer(long userId) {
-        HttpSession session = new MockHttpSession();
-        session.setAttribute(UserSession.ATTRIBUTE,
-                new UserSession(userId, "customer" + userId + "@example.com", "Customer", "CUSTOMER", null));
+    public static UserSession customer(long userId) {
+        UserSession session = new UserSession(userId, "customer" + userId + "@example.com", "Customer", "CUSTOMER", null);
         return session;
     }
 
@@ -72,7 +68,7 @@ public final class AgentRaceSupport {
             List<Future<String>> futures = new ArrayList<>();
             for (int i = 0; i < threads; i++) {
                 long userId = customerIds.get(i);
-                HttpSession session = customer(userId);
+                UserSession session = customer(userId);
                 futures.add(pool.submit(() -> {
                     new BookingTools(slotService, appointmentService, conversations, session, userId, 1)
                             .proposeBooking(slotId);

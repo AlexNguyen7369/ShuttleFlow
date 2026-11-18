@@ -10,7 +10,6 @@ import com.shuttleflow.service.AiUnavailableException;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.InvalidRequestException;
 import com.shuttleflow.service.SlotService;
-import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -78,8 +77,8 @@ public class ChatAgentService {
         this.conversations = conversations;
     }
 
-    public ChatResponseDto chat(ChatRequest request, HttpSession session) {
-        UserSession user = sessionAuth.requireCustomer(session);
+    public ChatResponseDto chat(ChatRequest request, UserSession caller) {
+        UserSession user = sessionAuth.requireCustomer(caller);
         String message = request == null ? null : request.getMessage();
         if (message == null || message.isBlank()) {
             throw new InvalidRequestException("message must not be blank.");
@@ -94,7 +93,7 @@ public class ChatAgentService {
                     .system(SYSTEM_PROMPT + "\nCurrent local date and time: " + now)
                     .user(message)
                     .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, turn.conversationId()))
-                    .tools(new BookingTools(slotService, appointmentService, conversations, session,
+                    .tools(new BookingTools(slotService, appointmentService, conversations, caller,
                             user.getUserId(), turn.turn()), knowledgeService)
                     .call()
                     .chatResponse());
