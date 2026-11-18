@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { post, request } from "../lib/api";
+import { post, request, SIGNED_OUT_EVENT } from "../lib/api";
 
 // Who is signed in, restored from the login cookie on page load via GET /auth/session.
 const AuthContext = createContext(null);
@@ -15,6 +15,9 @@ export function AuthProvider({ children }) {
       .then(setUser)
       .catch(() => setUser(null)) // 401: nobody is signed in
       .finally(() => setReady(true));
+    const signedOut = () => setUser(null);
+    window.addEventListener(SIGNED_OUT_EVENT, signedOut);
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, signedOut);
   }, []);
 
   const login = useCallback(async (email, password, asProvider) => {
@@ -24,8 +27,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await post("/auth/logout");
-    setUser(null);
+    try {
+      await post("/auth/logout");
+    } finally {
+      setUser(null); // sign out in the UI even if the API could not be reached
+    }
   }, []);
 
   return <AuthContext.Provider value={{ user, ready, login, logout }}>{children}</AuthContext.Provider>;

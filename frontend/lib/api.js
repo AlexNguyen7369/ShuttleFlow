@@ -1,5 +1,7 @@
 // Every call goes to /api/..., which next.config.mjs forwards to the Spring Boot API. The browser
 // sends the HttpOnly login cookie automatically; page code never sees the token.
+export const SIGNED_OUT_EVENT = "shuttleflow:signed-out";
+
 export async function request(path, options = {}) {
   // "/api" not "/api/": Next.js redirects a trailing slash, which would cost an extra round trip.
   const response = await fetch(path === "/" ? "/api" : `/api${path}`, {
@@ -12,6 +14,10 @@ export async function request(path, options = {}) {
     body = text ? JSON.parse(text) : null;
   } catch {
     body = null; // e.g. an HTML error page when the API is down
+  }
+  if (response.status === 401 && !path.startsWith("/auth/")) {
+    // The login cookie expired or was rejected: tell the app to show the user as signed out.
+    window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
   }
   if (!response.ok) {
     const error = new Error(body?.error || (response.status >= 500

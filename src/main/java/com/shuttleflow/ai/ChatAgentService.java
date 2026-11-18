@@ -8,6 +8,7 @@ import com.shuttleflow.repository.AiConversationRepository.TurnRecord;
 import com.shuttleflow.service.AiConversationService;
 import com.shuttleflow.service.AiUnavailableException;
 import com.shuttleflow.service.AppointmentService;
+import com.shuttleflow.service.ConflictException;
 import com.shuttleflow.service.InvalidRequestException;
 import com.shuttleflow.service.SlotService;
 import org.slf4j.Logger;
@@ -18,6 +19,9 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -61,6 +65,7 @@ public class ChatAgentService {
     private final SessionAuth sessionAuth;
     private final KnowledgeService knowledgeService;
     private final AiConversationService conversations;
+    private final Map<Long, ReentrantLock> inFlight = new ConcurrentHashMap<>();
 
     public ChatAgentService(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory, SlotService slotService,
                             AppointmentService appointmentService, SessionAuth sessionAuth,
@@ -86,6 +91,21 @@ public class ChatAgentService {
         if (message.length() > MAX_MESSAGE_LENGTH) {
             throw new InvalidRequestException("message must be at most " + MAX_MESSAGE_LENGTH + " characters.");
         }
+        // One message at a time per user: otherwise a second message could confirm a proposal made by a
+        // reply the user has not seen yet. shortcut: in-memory lock, one app instance only; move it to a
+        // busy flag on the ai_conversations row if the API ever runs as several instances.
+        ReentrantLock lock = inFlight.computeIfAbsent(user.getUserId(), id -> new ReentrantLock());
+        if (!lock.tryLock()) {
+            throw new ConflictException("The assistant is still answering your previous message. Try again in a moment.");
+        }
+        try {
+            return answer(message, caller, user);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private ChatResponseDto answer(String message, UserSession caller, UserSession user) {
         TurnRecord turn = conversations.nextTurn(user.getUserId());
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("EEEE yyyy-MM-dd HH:mm"));
         try {

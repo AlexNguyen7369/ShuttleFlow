@@ -21,6 +21,11 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -90,6 +95,32 @@ class AiChatControllerTest {
                 "SELECT turn, conversation_id FROM ai_conversations WHERE user_id = 3");
         assertThat(row.get("TURN")).isEqualTo(2);
         assertThat(row.get("CONVERSATION_ID")).isInstanceOf(String.class).isNotEqualTo(alex.getValue());
+    }
+
+    @Test
+    void aSecondMessageWhileTheFirstIsBeingAnsweredIs409() throws Exception {
+        CountDownLatch modelCalled = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        when(chatModel.call(any(Prompt.class))).thenAnswer(invocation -> {
+            modelCalled.countDown();
+            release.await(5, TimeUnit.SECONDS);
+            return new ChatResponse(List.of(new Generation(new AssistantMessage("Done."))));
+        });
+        Cookie alex = login("alex@shuttleflow.com", "alex-test");
+        ExecutorService pool = Executors.newSingleThreadExecutor();
+        try {
+            Future<Integer> first = pool.submit(() -> chat(alex, "Book a court").andReturn().getResponse().getStatus());
+            assertThat(modelCalled.await(5, TimeUnit.SECONDS)).isTrue();
+
+            chat(alex, "yes").andExpect(status().isConflict());
+
+            release.countDown();
+            assertThat(first.get(5, TimeUnit.SECONDS)).isEqualTo(200);
+            chat(alex, "thanks").andExpect(status().isOk()); // the lock is released afterwards
+        } finally {
+            release.countDown();
+            pool.shutdownNow();
+        }
     }
 
     @Test

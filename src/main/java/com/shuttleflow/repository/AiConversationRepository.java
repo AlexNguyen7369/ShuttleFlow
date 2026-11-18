@@ -54,6 +54,10 @@ public class AiConversationRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Must run outside a transaction: on PostgreSQL a unique violation aborts the surrounding
+     * transaction even when caught, so the losing racer would fail its next statement.
+     */
     public void insertIfMissing(long userId, String conversationId) {
         try {
             jdbcTemplate.update(INSERT_IF_MISSING_SQL, userId, conversationId, userId);
