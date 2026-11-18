@@ -1,0 +1,37 @@
+# Render Blueprint for the ShuttleFlow API (Spring Boot, built from ./Dockerfile).
+# The Next.js frontend is deployed separately on Vercel and forwards /api/* here (see README "Deploy").
+services:
+  - type: web
+    name: shuttleflow-api
+    runtime: docker
+    plan: free                  # sleeps after 15 min idle; about 1 min to wake
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass  # deploy main only after GitHub Actions passes
+    envVars:
+      # Keep data across restarts: load schema.sql + seed.sql only into an empty database.
+      - key: SQL_INIT_MODE
+        value: never
+      - key: DB_INIT_IF_EMPTY
+        value: "true"
+      - key: DB_POOL_SIZE
+        value: "5"
+      # The browser reaches the API over HTTPS through Vercel, so the login cookie can be Secure.
+      - key: JWT_COOKIE_SECURE
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      # Free instances have 512 MB; let the JVM use most of it.
+      - key: JAVA_TOOL_OPTIONS
+        value: -XX:MaxRAMPercentage=75
+      # Secrets: entered in the Render dashboard when the Blueprint is created, never committed.
+      - key: SPRING_DATASOURCE_URL   # jdbc:postgresql://<neon-host>/<db>?sslmode=require
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
