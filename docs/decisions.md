@@ -183,3 +183,27 @@ Milestone 1 itself is only the design + a read-only skeleton (`GET /`, `GET /slo
 9. **Bonus: self-check.** Before a reminder is queued, code checks that the
    text names the right court/coach and start time. On a mismatch, an LLM
    error or a 429, the agent uses the template message instead.
+
+## Post-M4 decisions — 2026-11-17: Next.js frontend and JWT login
+
+Work happens on `feature/nextjs-jwt`; `main` stays the submitted Milestone 4.
+
+1. **JWT in an HttpOnly cookie.** `POST /auth/login` and `/auth/provider/login`
+   set a signed JWT (HS256) in a `Secure`-configurable, `HttpOnly`,
+   `SameSite=Lax` cookie. Page JavaScript can never read it, so an injected
+   script cannot steal it. `POST /auth/logout` clears the cookie. The token
+   carries the user id, email, name, role and provider id, and expires after
+   a few hours; being stateless, it cannot be revoked early, so the expiry is
+   kept short.
+2. **No HTTP session.** A request filter verifies the cookie and hands the
+   identity to controllers; services receive the identity instead of the
+   `HttpSession`. `SessionAuth` keeps its `401`/`403` guards.
+3. **Agent state in the database.** The chat agent's turn number, pending
+   propose/confirm action and chat-memory id move from the session to an
+   `ai_conversations` table keyed by user id. Confirm-before-write keeps the
+   same rule (only a proposal from the immediately previous turn), and
+   claiming a pending action is one conditional `UPDATE`, so it can be used
+   once. Login starts a fresh conversation.
+4. **Next.js replaces `frontend/`.** The Next.js app calls the API through its
+   own `/api/*` rewrite to the Spring Boot server, so the browser sees one
+   origin and the auth cookie is first-party.

@@ -53,8 +53,9 @@
 50. 2026-11-16 — Alex Nguyen — Ran the smart-behavior check against real Gemini and fixed what it found: replies split into several parts were cut off (now joined by AiText in all three AI calls) and the agent sometimes asked to confirm without proposing (system prompt tightened); all three scenarios then passed (multi-step booking with confirmation, taken slot with alternatives, multi-turn follow-up), as did grounded /ai/ask and LLM reminders with no fallbacks; transcripts saved in Milestone4/m4-transcripts.md; 136 tests pass (M4 item 9).
 51. 2026-11-16 — Alex Nguyen — Verified M4 end to end: docker compose up with the real key (chat booked only after "yes", /ai/ask answered from the Hours section, /ai/reminders/run queued two LLM reminders that reached /mock-notifications as SENT), mvn test 136 passing, mvn clean package, CI green, reviewer findings fixed, and no API key in git history or tracked files (M4 item 16).
 52. 2026-11-16 — Alex Nguyen — Committed the pending dashboard tooling changes, ignored .vibe-wise/ notes, and added the Milestone 4 report draft (Milestone4/m4-report.html, also published as a private claude.ai artifact) for the author to rewrite.
+53. 2026-11-17 — Alex Nguyen — Started the Next.js and JWT work on branch feature/nextjs-jwt and recorded its decisions in docs/decisions.md: JWT in an HttpOnly SameSite cookie, no HTTP session, chat-agent state in an ai_conversations table, and Next.js replacing frontend/ behind an /api rewrite.
 
 ## What's next
-**Rewrite the Milestone 4 report draft (Milestone4/m4-report.html) in your own words, export it to PDF, record the 5+ minute code walkthrough video, and build CMPE172_Milestone4_FirstName_LastName.zip.**
+**Move the chat agent's turn number, pending propose/confirm action and memory id from the HTTP session into an ai_conversations table keyed by user id, keeping the confirm-before-write rules and tests green.**
 
-**Why this is next:** the implementation and verification are complete; the report PDF, video and zip are the remaining graded deliverables.
+**Why this is next:** JWT login removes the HTTP session, so the agent's state needs its new home before sessions can be removed.
