@@ -62,6 +62,7 @@
 59. 2026-11-17 — Alex Nguyen — Reviewed pull request #1 (Next.js frontend and JWT login), fixed its findings, and merged it into main as 007b18d with CI green on both the backend and frontend jobs.
 60. 2026-11-17 — Alex Nguyen — Updated the Milestone 4 report draft (Milestone4/m4-report.html and its artifact) with a section on the post-M4 JWT login and Next.js website, the database-backed assistant state, the PR review fixes, and the current test count.
 61. 2026-11-17 — Alex Nguyen — Started deployment on branch feature/deploy: added DatabaseInitializer, which loads schema.sql and seed.sql only into an empty database when DB_INIT_IF_EMPTY=true (with SQL_INIT_MODE=never), so a hosted database keeps its data across restarts; verified on PostgreSQL that data survives a restart; 148 tests pass.
+62. 2026-11-17 — Alex Nguyen — Added hosting settings: server.port from PORT (Render) and the connection pool size from DB_POOL_SIZE (5 on Render for Neon's connection limit).
 ## What's next
 **Rerun the Milestone 4 demo on the Next.js frontend (sign in, book and confirm by chat, policy questions, run reminders), then record the walkthrough video from Milestone4/video_script4.txt, including its JWT and Next.js section.**
 
