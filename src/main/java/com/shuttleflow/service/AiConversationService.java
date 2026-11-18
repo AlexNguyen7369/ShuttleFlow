@@ -47,14 +47,19 @@ public class AiConversationService {
         });
     }
 
-    public void propose(long userId, String kind, long targetId, int turn) {
+    /**
+     * Records a pending action. Returns true if this exact action was already proposed on the previous
+     * turn: it is then kept as is, so the user's reply to it can still confirm it.
+     */
+    public boolean propose(long userId, String kind, long targetId, int turn) {
         repository.insertIfMissing(userId, UUID.randomUUID().toString());
         Optional<PendingRecord> current = repository.findPending(userId);
         if (current.isPresent() && current.get().kind().equals(kind)
                 && current.get().targetId() == targetId && current.get().turn() == turn - 1) {
-            return; // Same proposal repeated on the "yes" turn: keep it confirmable.
+            return true;
         }
         repository.setPending(userId, kind, targetId, turn);
+        return false;
     }
 
     /**
