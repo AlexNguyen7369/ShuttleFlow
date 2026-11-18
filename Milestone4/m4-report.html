@@ -105,7 +105,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
     <li><b>Repository</b> <a href="https://github.com/AlexNguyen7369/ShuttleFlow">github.com/AlexNguyen7369/ShuttleFlow</a></li>
   </ul>
   <div class="abstract">
-    <p>ShuttleFlow lets badminton players book courts and coaching sessions. In Milestone 4 it gained three AI features: an assistant that books and cancels through a chat conversation, a background agent that sends each player a personal reminder the day before their session, and a help box that answers questions about the facility's rules using only the official policy document. The main design goal was safety: the AI can do only what a signed-in player could already do, it always asks before changing a booking, and it cannot cause two players to get the same court.</p>
+    <p>ShuttleFlow lets badminton players book courts and coaching sessions. In Milestone 4 it gained three AI features: an assistant that books and cancels through a chat conversation, a background agent that sends each player a personal reminder the day before their session, and a help box that answers questions about the facility's rules using only the official policy document. The main design goal was safety: the AI can do only what a signed-in player could already do, it always asks before changing a booking, and it cannot cause two players to get the same court. After the milestone, sign-in was moved to signed login tokens (JWT) and the website was rebuilt with Next.js; section 12 describes that upgrade.</p>
   </div>
 </header>
 
@@ -214,29 +214,30 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
   <div class="box"><h4>It only uses existing features</h4><p>Each tool calls the same booking code the website uses. The assistant cannot reach the database any other way, so every existing check still applies.</p></div>
   <div class="box"><h4>It acts as the signed-in player</h4><p>The assistant always works on behalf of whoever is signed in. It cannot choose to act as someone else, and a court manager's account cannot book through it.</p></div>
   <div class="box"><h4>It must ask before booking</h4><p>Booking is split into two steps. The confirm step works only if the player sent a new message after the proposal, so the AI cannot book on its own, even if it ignores its instructions.</p></div>
-  <div class="box"><h4>One "yes" books once</h4><p>A confirmation is used up as soon as it is acted on, and an old proposal expires if the conversation moves on, so a stray "yes" later cannot book anything.</p></div>
+  <div class="box"><h4>One "yes" books once</h4><p>A confirmation is used up as soon as it is acted on, and an old proposal expires if the conversation moves on, so a stray "yes" later cannot book anything. The assistant also answers one message at a time per player, so a reply can only confirm a proposal the player has actually seen.</p></div>
 </div>
-<p>The ask-before-booking rule is enforced in the code, not only in the AI's instructions. This short excerpt is the check that runs before every booking or cancellation:</p>
-<pre class="code" data-lang="java"><code>private PendingAction takeConfirmable(PendingAction.Kind kind) {
-    if (!(session.getAttribute(PendingAction.SESSION_KEY) instanceof PendingAction pending)
-            || pending.kind() != kind || pending.turn() &gt;= turn) {
-        return null;
+<p>The ask-before-booking rule is enforced in the code, not only in the AI's instructions. The proposal is saved in the database for that player, and this short excerpt is the check that runs before every booking or cancellation:</p>
+<pre class="code" data-lang="java"><code>public Optional&lt;Long&gt; takeConfirmable(long userId, String kind, int turn) {
+    Optional&lt;PendingRecord&gt; found = repository.findPending(userId);
+    if (found.isEmpty() || !found.get().kind().equals(kind) || found.get().turn() &gt;= turn) {
+        return Optional.empty();
     }
+    PendingRecord pending = found.get();
     if (pending.turn() != turn - 1) {
         // Stale: the user moved on after the proposal, so this message is not the answer to it.
-        session.removeAttribute(PendingAction.SESSION_KEY);
-        return null;
+        repository.clearPending(userId);
+        return Optional.empty();
     }
-    session.removeAttribute(PendingAction.SESSION_KEY);
-    return pending;
+    return repository.claimPending(userId, kind, pending.targetId(), pending.turn())
+            ? Optional.of(pending.targetId()) : Optional.empty();
 }</code></pre>
-<p class="caption">The pending choice must be the right kind of action and must come from the player's previous message; otherwise nothing is booked.</p>
+<p class="caption">The pending choice must be the right kind of action and must come from the player's previous message; claiming it is a single database update, so it can only be used once. Otherwise nothing is booked.</p>
 
 <h2><span class="num">4</span> Proving the assistant can't double-book</h2>
 <p>The most important rule in ShuttleFlow is that a court can only be booked by one player at a time. Earlier milestones enforce this in the database itself. Milestone 4 adds a test showing the rule still holds when bookings come through the assistant: two players propose the same court, then both say yes. One booking succeeds, the other is told "Court is already booked.", and the database contains exactly one booking.</p>
 <pre class="code" data-lang="java"><code>void twoSessionsProposeAndConfirmTheSameSlotOnlyOneBooks() {
-    HttpSession alex = AgentRaceSupport.customer(3L);
-    HttpSession jamie = AgentRaceSupport.customer(4L);
+    UserSession alex = AgentRaceSupport.customer(3L);
+    UserSession jamie = AgentRaceSupport.customer(4L);
     tools(alex, 1).proposeBooking(slotId);
     tools(jamie, 1).proposeBooking(slotId);
 
@@ -248,7 +249,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
     assertThat(AgentRaceSupport.activeBookings(jdbc, slotId)).isEqualTo(1);
 }</code></pre>
 <p class="caption">The required test, in the player-facing order: both propose, both confirm, one wins.</p>
-<p>A second version sends eight confirmations at the same instant. It passed on the test database and in 15 out of 15 rounds on a real PostgreSQL database, with exactly one booking each time.</p>
+<p>A second version sends eight confirmations from eight different players at the same instant. It passed on the test database and in every round on a real PostgreSQL database, with exactly one booking each time.</p>
 
 <h2><span class="num">5</span> The reminder agent (Agent 2)</h2>
 <p>The reminder agent works without anyone asking it to. Every 15 minutes it:</p>
@@ -334,18 +335,19 @@ Would you like to book one of these instead?</p></div></div>
 <p>Both messages passed the fact-check. Running the agent a second time sent nothing new, as intended. The same checks passed again when the whole system ran in Docker.</p>
 
 <h2><span class="num">9</span> Keeping the API key safe</h2>
-<p>The Gemini key is read from an environment variable and stored in a local file that is never committed to GitHub; a scan of the project history found no key. If no key is set, ShuttleFlow still runs normally: the AI features reply that they are unavailable, and reminders use the standard message. Logs never record the key, the player's messages or the AI's replies.</p>
+<p>The Gemini key, and since the upgrade the secret that signs login tokens, are read from environment variables and stored in a local file that is never committed to GitHub; a scan of the project history found no key. If no key is set, ShuttleFlow still runs normally: the AI features reply that they are unavailable, and reminders use the standard message. Logs never record the key, the player's messages or the AI's replies.</p>
 
 <h2><span class="num">10</span> Testing</h2>
-<p>The project has 136 automated tests. The AI tests replace Gemini with a stand-in that gives fixed answers, so they run quickly, cost nothing and never need the real key. They cover:</p>
+<p>The project has 146 automated tests. The AI tests replace Gemini with a stand-in that gives fixed answers, so they run quickly, cost nothing and never need the real key. They cover:</p>
 <ul>
   <li>the double-booking test above, including a version with eight simultaneous players;</li>
   <li>the ask-before-booking rule: no booking without a proposal, no booking in the same message, no repeated bookings from one "yes";</li>
   <li>sign-in and role checks for every AI feature;</li>
   <li>policy answers using the right document sections, and the document matching the database;</li>
-  <li>one reminder per booking, the fallback message, and the fact-check catching wrong times and courts.</li>
+  <li>one reminder per booking, the fallback message, and the fact-check catching wrong times and courts;</li>
+  <li>since the upgrade, login tokens: forged, tampered, expired and unsigned tokens are all rejected.</li>
 </ul>
-<p>GitHub runs the full test suite automatically on every change.</p>
+<p>GitHub runs the full test suite and builds the website automatically on every change.</p>
 
 <h2><span class="num">11</span> Problems found while testing with the real AI</h2>
 <ul>
@@ -354,9 +356,33 @@ Would you like to book one of these instead?</p></div></div>
   <li><strong>A code review found gaps</strong> in the fact-check (it accepted "11pm" for a 1pm booking) and in how long a proposal stayed valid. Both were fixed and covered by new tests.</li>
 </ul>
 
-<h2><span class="num">12</span> Limitations and next steps</h2>
+<h2><span class="num">12</span> After Milestone 4: signed login tokens and a Next.js website</h2>
+<p>Once the AI features were finished, two parts of the system were upgraded on a separate branch, reviewed, and merged.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th></th><th>During Milestone 4</th><th>After the upgrade</th></tr></thead>
+  <tbody>
+    <tr><td>How the server knows who you are</td><td>The server kept a session for each signed-in player</td><td>The server signs a login token (a JWT) and keeps nothing; each request carries the token</td></tr>
+    <tr><td>Where the login lives in the browser</td><td>A session cookie</td><td>The token, in a cookie the page's own scripts cannot read</td></tr>
+    <tr><td>The assistant's memory of a pending booking</td><td>Kept in the player's session</td><td>Kept in a database table, one row per player</td></tr>
+    <tr><td>The website</td><td>Plain HTML, CSS and JavaScript files</td><td>A Next.js (React) app with the same pages</td></tr>
+  </tbody>
+</table>
+</div>
+<h3>Why signed tokens</h3>
+<p>With a token, the server does not have to remember who is signed in: it checks the token's signature on every request. The token holds the player's id and role, is signed with a secret only the server knows, and expires after two hours. It is stored in a cookie marked <em>HttpOnly</em>, so even a malicious script injected into the page could not read it, and <em>SameSite</em>, so other websites cannot use it to send requests. The server accepts only one signing method, which blocks a known attack where a forged token claims to need no signature.</p>
+<p>The tradeoff is that a token cannot be cancelled early. Signing out deletes the cookie from the browser, but a copied token would stay valid until it expires, which is why its lifetime is kept short.</p>
+<h3>What it meant for the AI features</h3>
+<p>The booking assistant used to remember its pending proposal and turn number in the player's session. With no sessions, that information moved to a database table. The safety rules did not change: a confirmation must still answer the previous message, it can still be used only once, and the assistant still acts only as the signed-in player. All the earlier tests, including the double-booking test, pass unchanged in what they check.</p>
+<h3>The Next.js website</h3>
+<p>The website was rebuilt with Next.js, keeping every page: home, sign in, browse and book, my bookings, the provider workspace and the assistant. The browser only ever talks to the Next.js server, which forwards data requests to the booking API. Because of that, the login cookie belongs to the same site as the pages, and the page code never handles the token itself. If a token expires while the page is open, the site shows the player as signed out.</p>
+<h3>Reviewing the change</h3>
+<p>Before merging, a code review found three real problems, all fixed with new tests: two first requests from the same player arriving at once could fail on PostgreSQL; two chat messages sent at once could let one confirm a proposal the player had not seen; and the website kept showing a player as signed in after their token expired.</p>
+
+<h2><span class="num">13</span> Limitations and next steps</h2>
 <ul>
-  <li>Conversations are kept in memory and reset when the server restarts. Saving them in the database would fix this.</li>
+  <li>The chat history the assistant remembers is kept in memory and resets when the server restarts; only the pending proposal and turn number are in the database. Saving the history there too would fix this.</li>
+  <li>A login token stays valid until it expires, even after signing out, and the assistant's one-message-at-a-time rule assumes a single server.</li>
   <li>The free Gemini tier limits how many requests can be made. During a burst of use the assistant may be briefly unavailable, and reminders fall back to the standard message.</li>
   <li>The fact-check verifies the court and time but not the day.</li>
   <li>The hours, equipment and contact details in the policy document are sample data for the course project.</li>
