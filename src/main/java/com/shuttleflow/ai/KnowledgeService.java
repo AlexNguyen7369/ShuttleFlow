@@ -1,11 +1,11 @@
 package com.shuttleflow.ai;
 
+import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.auth.SessionAuth;
 import com.shuttleflow.dto.AskRequest;
 import com.shuttleflow.dto.AskResponseDto;
 import com.shuttleflow.service.AiUnavailableException;
 import com.shuttleflow.service.InvalidRequestException;
-import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -75,8 +75,8 @@ public class KnowledgeService {
     }
 
     /** POST /ai/ask: a grounded answer plus the section titles it came from. */
-    public AskResponseDto ask(AskRequest request, HttpSession session) {
-        sessionAuth.requireAuthenticated(session);
+    public AskResponseDto ask(AskRequest request, UserSession caller) {
+        sessionAuth.requireAuthenticated(caller);
         String question = request == null ? null : request.getQuestion();
         if (question == null || question.isBlank()) {
             throw new InvalidRequestException("question must not be blank.");

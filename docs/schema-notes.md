@@ -94,6 +94,17 @@ One row per notification owed, inserted in the same transaction as the booking o
 - `attempts` counts poller rounds; `last_attempt_at` records the latest one.
 - FK `appointment_id` → `appointments`.
 
+## Assistant conversations (post-M4, 2026-11-17)
+
+`ai_conversations` holds the chat agent's state per user, so login can be stateless (JWT).
+
+- PK `user_id` (FK → `users`): one conversation per user; login resets it.
+- `conversation_id`: random UUID keying the chat memory (never a session or user id).
+- `turn`: incremented once per chat message; the `UPDATE` row lock makes it atomic.
+- `pending_kind` `CHECK IN ('BOOK', 'CANCEL')`, `pending_target_id`, `pending_turn`: the proposed write
+  waiting for the user's yes. A `CHECK` keeps all three set or all `NULL`. Confirming claims it with one
+  conditional `UPDATE`, so it can be used once.
+
 ## Diagrams
 
 The ER diagram (PDF page 3) is an image and was not transcribed. Verify it agrees with the tables above.

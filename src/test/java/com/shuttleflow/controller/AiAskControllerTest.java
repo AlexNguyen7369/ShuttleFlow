@@ -1,5 +1,6 @@
 package com.shuttleflow.controller;
 
+import com.shuttleflow.auth.JwtService;
 import com.shuttleflow.ai.KeywordEmbeddingModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,7 @@ import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mock.web.MockHttpSession;
+import jakarta.servlet.http.Cookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -49,11 +50,11 @@ class AiAskControllerTest {
 
     @Test
     void loggedInUserGetsAGroundedAnswerWithSources() throws Exception {
-        MockHttpSession session = (MockHttpSession) mvc.perform(post("/auth/login").contentType("application/json")
+        Cookie session = mvc.perform(post("/auth/login").contentType("application/json")
                         .content("{\"email\":\"alex@shuttleflow.com\",\"password\":\"alex-test\"}"))
-                .andExpect(status().isOk()).andReturn().getRequest().getSession(false);
+                .andExpect(status().isOk()).andReturn().getResponse().getCookie(JwtService.COOKIE_NAME);
 
-        mvc.perform(post("/ai/ask").session(session).contentType("application/json")
+        mvc.perform(post("/ai/ask").cookie(session).contentType("application/json")
                         .content("{\"question\":\"What are the opening hours?\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.answer").value("ShuttleFlow Arena is open 7:00 AM to 10:00 PM."))

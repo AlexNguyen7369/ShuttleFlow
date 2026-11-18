@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS ai_conversations CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS appointments CASCADE;
 DROP TABLE IF EXISTS availability_slots CASCADE;
@@ -77,4 +78,18 @@ CREATE TABLE notifications (
     attempts         INT          NOT NULL DEFAULT 0 CHECK (attempts >= 0),
     created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_attempt_at  TIMESTAMP
+);
+
+-- Chat agent state per user (replaces the HTTP session for JWT login). The pending columns are all
+-- set (a proposed write waiting for the user's yes) or all NULL.
+CREATE TABLE ai_conversations (
+    user_id            BIGINT      PRIMARY KEY REFERENCES users(user_id),
+    conversation_id    VARCHAR(36) NOT NULL,
+    turn               INT         NOT NULL DEFAULT 0 CHECK (turn >= 0),
+    pending_kind       VARCHAR(10) CHECK (pending_kind IN ('BOOK', 'CANCEL')),
+    pending_target_id  BIGINT,
+    pending_turn       INT,
+    CONSTRAINT ai_conversations_pending_complete CHECK (
+        (pending_kind IS NULL AND pending_target_id IS NULL AND pending_turn IS NULL)
+        OR (pending_kind IS NOT NULL AND pending_target_id IS NOT NULL AND pending_turn IS NOT NULL))
 );

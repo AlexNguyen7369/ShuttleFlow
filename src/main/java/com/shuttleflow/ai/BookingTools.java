@@ -1,8 +1,10 @@
 package com.shuttleflow.ai;
 
+import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.dto.AppointmentDto;
 import com.shuttleflow.dto.BookingRequest;
 import com.shuttleflow.dto.SlotDto;
+import com.shuttleflow.service.AiConversationService;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.BookingConflictException;
 import com.shuttleflow.service.ConflictException;
@@ -11,7 +13,6 @@ import com.shuttleflow.service.InvalidRequestException;
 import com.shuttleflow.service.NotFoundException;
 import com.shuttleflow.service.SlotService;
 import com.shuttleflow.service.UnauthorizedException;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -20,10 +21,11 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * The chat agent's tools. One instance per chat request, holding that request's session, so the
+ * The chat agent's tools. One instance per chat request, holding that request's caller identity, so the
  * model acts as the logged-in user and can never name another user. Tools call services only,
  * never repositories, so every rule of the REST API (RBAC, locks, constraints) still applies.
  * Errors go back to the model as text it can explain to the user.
@@ -34,15 +36,19 @@ public class BookingTools {
 
     private final SlotService slotService;
     private final AppointmentService appointmentService;
-    private final HttpSession session;
+    private final AiConversationService conversations;
+    private final UserSession caller;
+    private final long userId;
     private final int turn;
 
-    /** {@code turn} is this chat request's turn number; confirms need a pending action from an earlier one. */
-    public BookingTools(SlotService slotService, AppointmentService appointmentService, HttpSession session,
-                        int turn) {
+    /** {@code turn} is this chat request's turn number; confirms need a pending action from the one before. */
+    public BookingTools(SlotService slotService, AppointmentService appointmentService,
+                        AiConversationService conversations, UserSession caller, long userId, int turn) {
         this.slotService = slotService;
         this.appointmentService = appointmentService;
-        this.session = session;
+        this.conversations = conversations;
+        this.caller = caller;
+        this.userId = userId;
         this.turn = turn;
     }
 
@@ -86,7 +92,7 @@ public class BookingTools {
     @Tool(description = "List the logged-in customer's upcoming booked appointments, earliest first, at most 10.")
     public String listMyAppointments() {
         return run(() -> {
-            List<AppointmentDto> appointments = appointmentService.list("upcoming", session);
+            List<AppointmentDto> appointments = appointmentService.list("upcoming", caller);
             if (appointments.isEmpty()) {
                 return "You have no upcoming appointments.";
             }
@@ -105,7 +111,7 @@ public class BookingTools {
         if (slotId < 1) {
             return "Error: slotId must be a positive number.";
         }
-        session.setAttribute(PendingAction.SESSION_KEY, new PendingAction(PendingAction.Kind.BOOK, slotId, turn));
+        conversations.propose(userId, AiConversationService.BOOK, slotId, turn);
         return "Booking of slotId=" + slotId + " is proposed but NOT booked. Ask the user to confirm.";
     }
 
@@ -113,11 +119,11 @@ public class BookingTools {
             + "confirmed in a new message.")
     public String confirmBooking() {
         return run(() -> {
-            PendingAction pending = takeConfirmable(PendingAction.Kind.BOOK);
-            if (pending == null) {
+            Optional<Long> slotId = conversations.takeConfirmable(userId, AiConversationService.BOOK, turn);
+            if (slotId.isEmpty()) {
                 return refusal("booking");
             }
-            AppointmentDto booked = appointmentService.book(new BookingRequest(pending.targetId(), null), session);
+            AppointmentDto booked = appointmentService.book(new BookingRequest(slotId.get(), null), caller);
             return "Booked: appointmentId=" + booked.getAppointmentId() + " | " + booked.getProviderName() + " | "
                     + booked.getServiceName() + " | " + booked.getStartTime() + " to "
                     + booked.getEndTime().toLocalTime();
@@ -130,8 +136,7 @@ public class BookingTools {
         if (appointmentId < 1) {
             return "Error: appointmentId must be a positive number.";
         }
-        session.setAttribute(PendingAction.SESSION_KEY,
-                new PendingAction(PendingAction.Kind.CANCEL, appointmentId, turn));
+        conversations.propose(userId, AiConversationService.CANCEL, appointmentId, turn);
         return "Cancellation of appointmentId=" + appointmentId + " is proposed but NOT done. Ask the user to confirm.";
     }
 
@@ -139,33 +144,13 @@ public class BookingTools {
             + "explicitly confirmed in a new message.")
     public String confirmCancel() {
         return run(() -> {
-            PendingAction pending = takeConfirmable(PendingAction.Kind.CANCEL);
-            if (pending == null) {
+            Optional<Long> appointmentId = conversations.takeConfirmable(userId, AiConversationService.CANCEL, turn);
+            if (appointmentId.isEmpty()) {
                 return refusal("cancellation");
             }
-            appointmentService.cancel(pending.targetId(), session);
-            return "Cancelled appointmentId=" + pending.targetId() + ".";
+            appointmentService.cancel(appointmentId.get(), caller);
+            return "Cancelled appointmentId=" + appointmentId.get() + ".";
         });
-    }
-
-    /**
-     * The code-level confirm-before-write guard: returns the pending action only if it has the right
-     * kind and was proposed in the turn just before this one, so the user's latest message is the
-     * reply to that proposal. An older proposal expires.
-     * A used action is removed, so one "yes" can never commit twice.
-     */
-    private PendingAction takeConfirmable(PendingAction.Kind kind) {
-        if (!(session.getAttribute(PendingAction.SESSION_KEY) instanceof PendingAction pending)
-                || pending.kind() != kind || pending.turn() >= turn) {
-            return null;
-        }
-        if (pending.turn() != turn - 1) {
-            // Stale: the user moved on after the proposal, so this message is not the answer to it.
-            session.removeAttribute(PendingAction.SESSION_KEY);
-            return null;
-        }
-        session.removeAttribute(PendingAction.SESSION_KEY);
-        return pending;
     }
 
     private String refusal(String what) {

@@ -9,7 +9,6 @@ import com.shuttleflow.dto.SlotDto;
 import com.shuttleflow.repository.AppointmentRepository;
 import com.shuttleflow.repository.ProviderRepository;
 import com.shuttleflow.repository.SlotRepository;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +32,8 @@ public class ProviderService {
     }
 
     @Transactional
-    public SlotDto create(AvailabilityRequest request, HttpSession session) {
-        UserSession user = sessionAuth.requireProvider(session);
+    public SlotDto create(AvailabilityRequest request, UserSession caller) {
+        UserSession user = sessionAuth.requireProvider(caller);
         validate(request);
         long providerId = user.getProviderId();
         long serviceId = request.getServiceId();
@@ -53,8 +52,8 @@ public class ProviderService {
     }
 
     @Transactional
-    public void remove(long slotId, HttpSession session) {
-        UserSession user = sessionAuth.requireProvider(session);
+    public void remove(long slotId, UserSession caller) {
+        UserSession user = sessionAuth.requireProvider(caller);
         if (slotId < 1) {
             throw new InvalidRequestException("slotId must be a positive number.");
         }
@@ -78,13 +77,13 @@ public class ProviderService {
         }
     }
 
-    public List<ServiceDto> services(HttpSession session) {
-        UserSession user = sessionAuth.requireProvider(session);
+    public List<ServiceDto> services(UserSession caller) {
+        UserSession user = sessionAuth.requireProvider(caller);
         return providerRepository.findServices(user.getProviderId());
     }
 
-    public List<ProviderAppointmentDto> appointments(HttpSession session) {
-        UserSession user = sessionAuth.requireProvider(session);
+    public List<ProviderAppointmentDto> appointments(UserSession caller) {
+        UserSession user = sessionAuth.requireProvider(caller);
         return appointmentRepository.findProviderAppointments(user.getProviderId());
     }
 

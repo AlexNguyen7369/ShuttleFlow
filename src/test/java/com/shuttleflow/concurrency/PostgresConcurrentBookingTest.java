@@ -7,13 +7,12 @@ import com.shuttleflow.dto.BookingRequest;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.BookingConflictException;
 import com.shuttleflow.service.SlotService;
-import jakarta.servlet.http.HttpSession;
+import com.shuttleflow.service.AiConversationService;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -45,6 +44,7 @@ class PostgresConcurrentBookingTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private AppointmentService appointmentService;
     @Autowired private SlotService slotService;
+    @Autowired private AiConversationService conversations;
 
     @DynamicPropertySource
     static void postgres(DynamicPropertyRegistry registry) {
@@ -98,11 +98,41 @@ class PostgresConcurrentBookingTest {
     void agentConfirmRaceYieldsExactlyOneBooking() throws Exception {
         long slotId = AgentRaceSupport.freshSlot(jdbc);
 
-        List<String> results = AgentRaceSupport.race(THREADS, slotId, slotService, appointmentService);
+        List<String> results = AgentRaceSupport.race(AgentRaceSupport.customers(jdbc, THREADS), slotId, slotService,
+                appointmentService, conversations);
 
         assertEquals(1, results.stream().filter(r -> r.startsWith("Booked:")).count());
         assertEquals(THREADS - 1, results.stream().filter("Error: Court is already booked."::equals).count());
         assertEquals(1, AgentRaceSupport.activeBookings(jdbc, slotId));
+    }
+
+    /**
+     * A user's first messages racing to create their ai_conversations row: on PostgreSQL a duplicate key
+     * aborts its transaction, so the row is created outside one. Every caller must get a distinct turn.
+     */
+    @RepeatedTest(3)
+    void concurrentFirstMessagesFromOneUserGetDistinctTurns() throws Exception {
+        jdbc.update("DELETE FROM ai_conversations");
+        CountDownLatch go = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(THREADS);
+        try {
+            List<Future<Integer>> futures = new ArrayList<>();
+            for (int i = 0; i < THREADS; i++) {
+                futures.add(pool.submit(() -> {
+                    go.await();
+                    return conversations.nextTurn(3L).turn();
+                }));
+            }
+            go.countDown();
+            java.util.Set<Integer> turns = new java.util.HashSet<>();
+            for (Future<Integer> future : futures) {
+                turns.add(future.get(10, TimeUnit.SECONDS));
+            }
+            assertEquals(THREADS, turns.size());
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM ai_conversations WHERE user_id = 3", Integer.class));
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     private long freshSlot() {
@@ -117,9 +147,7 @@ class PostgresConcurrentBookingTest {
     }
 
     private Object attempt(long slotId, long userId, CountDownLatch ready, CountDownLatch go) {
-        HttpSession session = new MockHttpSession();
-        session.setAttribute(UserSession.ATTRIBUTE,
-                new UserSession(userId, "customer" + userId + "@example.com", "Customer", "CUSTOMER", null));
+        UserSession session = new UserSession(userId, "customer" + userId + "@example.com", "Customer", "CUSTOMER", null);
         ready.countDown();
         try {
             go.await();

@@ -1,15 +1,14 @@
 package com.shuttleflow.ai;
 
 import com.shuttleflow.auth.UserSession;
+import com.shuttleflow.service.AiConversationService;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.SlotService;
-import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpSession;
 
 import java.util.List;
 
@@ -24,6 +23,7 @@ class AgentDoubleBookingTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private SlotService slotService;
     @Autowired private AppointmentService appointmentService;
+    @Autowired private AiConversationService conversations;
     private long slotId;
 
     @BeforeEach
@@ -33,8 +33,8 @@ class AgentDoubleBookingTest {
 
     @Test
     void twoSessionsProposeAndConfirmTheSameSlotOnlyOneBooks() {
-        HttpSession alex = AgentRaceSupport.customer(3L);
-        HttpSession jamie = AgentRaceSupport.customer(4L);
+        UserSession alex = AgentRaceSupport.customer(3L);
+        UserSession jamie = AgentRaceSupport.customer(4L);
         tools(alex, 1).proposeBooking(slotId);
         tools(jamie, 1).proposeBooking(slotId);
 
@@ -48,7 +48,8 @@ class AgentDoubleBookingTest {
 
     @Test
     void concurrentAgentConfirmsYieldExactlyOneBooking() throws Exception {
-        List<String> results = AgentRaceSupport.race(8, slotId, slotService, appointmentService);
+        List<String> results = AgentRaceSupport.race(AgentRaceSupport.customers(jdbc, 8), slotId, slotService,
+                appointmentService, conversations);
 
         assertThat(results).filteredOn(r -> r.startsWith("Booked:")).hasSize(1);
         assertThat(results).filteredOn("Error: Court is already booked."::equals).hasSize(7);
@@ -66,16 +67,14 @@ class AgentDoubleBookingTest {
 
     @Test
     void providerSessionCannotBookThroughTheAgent() {
-        HttpSession provider = new MockHttpSession();
-        provider.setAttribute(UserSession.ATTRIBUTE,
-                new UserSession(1L, "court.manager@shuttleflow.com", "Court Manager", "PROVIDER", 1L));
+        UserSession provider = new UserSession(1L, "court.manager@shuttleflow.com", "Court Manager", "PROVIDER", 1L);
         tools(provider, 1).proposeBooking(slotId);
 
         assertThat(tools(provider, 2).confirmBooking()).startsWith("Error: You do not have permission");
         assertThat(AgentRaceSupport.activeBookings(jdbc, slotId)).isZero();
     }
 
-    private BookingTools tools(HttpSession session, int turn) {
-        return new BookingTools(slotService, appointmentService, session, turn);
+    private BookingTools tools(UserSession caller, int turn) {
+        return new BookingTools(slotService, appointmentService, conversations, caller, caller.getUserId(), turn);
     }
 }
