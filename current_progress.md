@@ -64,7 +64,9 @@
 61. 2026-11-17 — Alex Nguyen — Started deployment on branch feature/deploy: added DatabaseInitializer, which loads schema.sql and seed.sql only into an empty database when DB_INIT_IF_EMPTY=true (with SQL_INIT_MODE=never), so a hosted database keeps its data across restarts; verified on PostgreSQL that data survives a restart; 148 tests pass.
 62. 2026-11-17 — Alex Nguyen — Added hosting settings: server.port from PORT (Render) and the connection pool size from DB_POOL_SIZE (5 on Render for Neon's connection limit).
 63. 2026-11-17 — Alex Nguyen — Added render.yaml (free Docker web service, /health check, deploy after CI passes, data-keeping init, pool size 5, Secure cookie, generated JWT_SECRET, Neon and Gemini secrets entered in Render) and made the notification URL default to Render's RENDER_EXTERNAL_URL.
-## What's next
-**Rerun the Milestone 4 demo on the Next.js frontend (sign in, book and confirm by chat, policy questions, run reminders), then record the walkthrough video from Milestone4/video_script4.txt, including its JWT and Next.js section.**
+64. 2026-11-17 — Alex Nguyen — Documented deployment: README "Deploy (Vercel + Render + Neon)" with steps, the secrets table and free-tier caveats, deployment decisions in docs/decisions.md, a CLAUDE.md note, and frontend/.env.example for API_URL.
 
-**Why this is next:** the merged main is now the version the video and README describe, so the demo must be checked on the new UI before recording.
+## What's next
+**Create the hosted services: a Neon database, the Render Blueprint from render.yaml with the Neon and Gemini secrets, and the Vercel project (Root Directory frontend, API_URL set to the Render URL), then verify the live site end to end.**
+
+**Why this is next:** the repository is ready to deploy, and only the account setup (which needs the owner's logins) remains before the app is live.

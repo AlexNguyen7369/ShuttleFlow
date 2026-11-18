@@ -207,3 +207,17 @@ Work happens on `feature/nextjs-jwt`; `main` stays the submitted Milestone 4.
 4. **Next.js replaces `frontend/`.** The Next.js app calls the API through its
    own `/api/*` rewrite to the Spring Boot server, so the browser sees one
    origin and the auth cookie is first-party.
+
+## Deployment decisions — 2026-11-17
+
+1. **Split hosting.** Vercel cannot run Java, so the Next.js frontend is on Vercel and the Spring
+   Boot API runs from the existing `Dockerfile` on a Render free web service (`render.yaml`).
+   PostgreSQL is a Neon free database. The frontend's `/api` rewrite points at the Render URL, so
+   the browser sees one origin and the HttpOnly JWT cookie stays first-party.
+2. **Free tier accepted.** The API sleeps after 15 minutes idle and needs about a minute to wake;
+   the 15-minute reminder timer only runs while it is awake, and the manual trigger still works.
+3. **Keep hosted data.** The hosted API sets `SQL_INIT_MODE=never` and `DB_INIT_IF_EMPTY=true`:
+   `DatabaseInitializer` loads `schema.sql` and `seed.sql` only into an empty database. Locally the
+   database still resets on every start.
+4. **Secrets live in the hosts.** Neon credentials and the Gemini key are entered in Render;
+   Render generates `JWT_SECRET`. Nothing secret is committed.
