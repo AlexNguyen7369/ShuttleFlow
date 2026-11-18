@@ -4,7 +4,8 @@ import com.shuttleflow.repository.AiConversationRepository;
 import com.shuttleflow.repository.AiConversationRepository.PendingRecord;
 import com.shuttleflow.repository.AiConversationRepository.TurnRecord;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -20,13 +21,16 @@ public class AiConversationService {
     public static final String CANCEL = "CANCEL";
 
     private final AiConversationRepository repository;
+    private final TransactionTemplate transaction;
 
-    public AiConversationService(AiConversationRepository repository) {
+    public AiConversationService(AiConversationRepository repository, PlatformTransactionManager transactionManager) {
         this.repository = repository;
+        this.transaction = new TransactionTemplate(transactionManager);
     }
 
+    // Not @Transactional: the row is created in its own auto-committed statement first (see insertIfMissing).
+
     /** Starts a new conversation: new memory id, turn 0, nothing pending. Called on login. */
-    @Transactional
     public void reset(long userId) {
         String conversationId = UUID.randomUUID().toString();
         repository.insertIfMissing(userId, conversationId);
@@ -34,11 +38,13 @@ public class AiConversationService {
     }
 
     /** Advances the user's turn counter and returns it with the conversation (memory) id. */
-    @Transactional
     public TurnRecord nextTurn(long userId) {
         repository.insertIfMissing(userId, UUID.randomUUID().toString());
-        repository.incrementTurn(userId);
-        return repository.findTurn(userId).orElseThrow(() -> new IllegalStateException("Conversation row missing."));
+        // The UPDATE row-locks until commit, so reading the turn back in the same transaction is exact.
+        return transaction.execute(status -> {
+            repository.incrementTurn(userId);
+            return repository.findTurn(userId).orElseThrow(() -> new IllegalStateException("Conversation row missing."));
+        });
     }
 
     public void propose(long userId, String kind, long targetId, int turn) {

@@ -9,7 +9,11 @@ export default function Nav() {
   const router = useRouter();
 
   async function signOut() {
-    await logout();
+    try {
+      await logout();
+    } catch {
+      // logout() already cleared the user; nothing more to show
+    }
     router.push("/");
   }
 

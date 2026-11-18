@@ -106,6 +106,35 @@ class PostgresConcurrentBookingTest {
         assertEquals(1, AgentRaceSupport.activeBookings(jdbc, slotId));
     }
 
+    /**
+     * A user's first messages racing to create their ai_conversations row: on PostgreSQL a duplicate key
+     * aborts its transaction, so the row is created outside one. Every caller must get a distinct turn.
+     */
+    @RepeatedTest(3)
+    void concurrentFirstMessagesFromOneUserGetDistinctTurns() throws Exception {
+        jdbc.update("DELETE FROM ai_conversations");
+        CountDownLatch go = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(THREADS);
+        try {
+            List<Future<Integer>> futures = new ArrayList<>();
+            for (int i = 0; i < THREADS; i++) {
+                futures.add(pool.submit(() -> {
+                    go.await();
+                    return conversations.nextTurn(3L).turn();
+                }));
+            }
+            go.countDown();
+            java.util.Set<Integer> turns = new java.util.HashSet<>();
+            for (Future<Integer> future : futures) {
+                turns.add(future.get(10, TimeUnit.SECONDS));
+            }
+            assertEquals(THREADS, turns.size());
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM ai_conversations WHERE user_id = 3", Integer.class));
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
     private long freshSlot() {
         jdbc.update("DELETE FROM notifications");
         jdbc.update("DELETE FROM appointments");
