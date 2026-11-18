@@ -1,24 +1,19 @@
-# ShuttleFlow frontend — Milestone 2
+# ShuttleFlow frontend (Next.js)
 
-The dependency-free frontend is `index.html` plus `src/app.js` and
-`src/styles.css`. It is intentionally static so it can be served with any
-simple web server while the Spring Boot API runs on port 8080.
+A Next.js (App Router, JavaScript) client for the Spring Boot API. It replaced the static HTML client after
+Milestone 4.
 
-It provides home, login, slot browsing/filtering, booking, booking confirmation
-through the appointments view, customer cancellation, provider availability,
-and provider appointment views.
-
-Milestone 4 adds the Assistant section: a booking chat (`POST /ai/chat`,
-customers only, confirms before every booking or cancellation), a policy
-question box (`POST /ai/ask`, shows the policy sections used), and a
-"Run reminders now" button in the provider workspace
-(`POST /ai/reminders/run`).
-
-The UI must call the existing/new REST controllers and preserve the flow:
-
-```text
-UI → Controller → Service → Repository → Database → DTO response → UI
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173, needs the API running on :8080
+npm run build      # production build (CI runs this)
 ```
 
-Start it locally with `python3 -m http.server 5173 --directory frontend`.
-The app sends same-session requests with `credentials: include` to the API.
+- **Pages:** `/` home, `/login`, `/browse` (filter, paginate, book with a confirmation dialog), `/bookings`
+  (upcoming/history, cancel), `/provider` (services, create/remove slots, booked appointments, run reminders),
+  `/assistant` (booking chat on `/ai/chat`, policy questions on `/ai/ask`).
+- **API calls:** every request goes to `/api/...`, which `next.config.mjs` forwards to the API
+  (`API_URL`, default `http://localhost:8080`). The browser therefore sees one origin, and no CORS is needed.
+- **Login:** the API sets the JWT in an `HttpOnly`, `SameSite=Lax` cookie named `SF_AUTH`. Page code never reads
+  or stores the token; `app/auth.js` restores who is signed in from `GET /auth/session` on load.
