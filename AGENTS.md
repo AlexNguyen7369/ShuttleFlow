@@ -9,7 +9,7 @@ ShuttleFlow is a CMPE 172 badminton court and coach booking system. This file is
 - Maven build; use `mvn test` for verification.
 - JDBC through `JdbcTemplate`; do not add JPA, Hibernate, Spring Data, or another ORM.
 - PostgreSQL is the runtime database; in-memory H2 is used only by tests. One portable `schema.sql` serves both, so keep SQL standard.
-- The backend uses `controller` → `service` → `repository` → database layering. The Milestone 2 frontend is the dependency-free static client in `frontend/`; keep frontend-to-backend flow clear and documented.
+- The backend uses `controller` → `service` → `repository` → database layering. The frontend is the Next.js app in `frontend/` (it replaced the static client after Milestone 4); keep frontend-to-backend flow clear and documented.
 
 ## Non-negotiable architecture rules
 
@@ -36,11 +36,11 @@ Implement and test the complete core booking workflow:
 
 - Support username/email and password login.
 - Store passwords only as BCrypt hashes; never compare or persist plaintext values.
-- Establish a server-side session at login. Read the role from the user's JDBC row.
+- Establish the caller's identity at login: a signed JWT in an HttpOnly cookie (it replaced the server-side session after Milestone 4). Read the role from the user's JDBC row.
 - Support `CUSTOMER` and `PROVIDER` roles. Enforce provider-only and customer-only endpoints in the service/security boundary.
 - Return `401` when unauthenticated and `403` for an authenticated user with the wrong role.
 - Do not allow account enumeration: unknown users and wrong passwords have the same login response.
-- OAuth/JWT are optional; the default implementation is session-based login.
+- Login uses JWT (HS256) in an `HttpOnly`, `SameSite=Lax` cookie; the server keeps no session.
 
 ### Required customer behavior
 
