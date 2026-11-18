@@ -18,7 +18,6 @@ import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.mock.web.MockHttpSession;
 
 import java.util.List;
 
@@ -33,7 +32,7 @@ import static org.mockito.Mockito.when;
 class KnowledgeServiceTest {
     private ChatModel chatModel;
     private KnowledgeService knowledge;
-    private MockHttpSession session;
+    private UserSession session;
 
     @BeforeEach
     void setUp() {
@@ -42,9 +41,7 @@ class KnowledgeServiceTest {
                 new Generation(new AssistantMessage("You can cancel any time before the appointment starts.")))));
         knowledge = new KnowledgeService(new KeywordEmbeddingModel(), ChatClient.builder(chatModel),
                 new SessionAuth(), false);
-        session = new MockHttpSession();
-        session.setAttribute(UserSession.ATTRIBUTE,
-                new UserSession(3L, "alex@shuttleflow.com", "Alex Nguyen", "CUSTOMER", null));
+        session = new UserSession(3L, "alex@shuttleflow.com", "Alex Nguyen", "CUSTOMER", null);
     }
 
     @Test
@@ -96,7 +93,7 @@ class KnowledgeServiceTest {
         assertThatThrownBy(() -> knowledge.ask(new AskRequest(" "), session)).isInstanceOf(InvalidRequestException.class);
         assertThatThrownBy(() -> knowledge.ask(new AskRequest("x".repeat(501)), session))
                 .isInstanceOf(InvalidRequestException.class);
-        assertThatThrownBy(() -> knowledge.ask(new AskRequest("hours?"), new MockHttpSession()))
+        assertThatThrownBy(() -> knowledge.ask(new AskRequest("hours?"), null))
                 .isInstanceOf(UnauthorizedException.class);
     }
 

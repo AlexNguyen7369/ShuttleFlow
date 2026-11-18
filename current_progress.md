@@ -55,8 +55,9 @@
 52. 2026-11-16 — Alex Nguyen — Committed the pending dashboard tooling changes, ignored .vibe-wise/ notes, and added the Milestone 4 report draft (Milestone4/m4-report.html, also published as a private claude.ai artifact) for the author to rewrite.
 53. 2026-11-17 — Alex Nguyen — Started the Next.js and JWT work on branch feature/nextjs-jwt and recorded its decisions in docs/decisions.md: JWT in an HttpOnly SameSite cookie, no HTTP session, chat-agent state in an ai_conversations table, and Next.js replacing frontend/ behind an /api rewrite.
 54. 2026-11-17 — Alex Nguyen — Moved the chat agent's turn number, pending propose/confirm action and memory id from the HTTP session to a new ai_conversations table (AiConversationRepository, AiConversationService with an atomic claim-once confirm), reset on login; the agent race now uses one customer per thread; 137 tests pass on H2 and 15/15 PostgreSQL race runs pass.
+55. 2026-11-17 — Alex Nguyen — Replaced session login with JWT: JwtService signs and verifies HS256 tokens (nimbus-jose-jwt 10.10, HS256-only, expiry checked, 32-byte secret from JWT_SECRET or random), login sets an HttpOnly SameSite=Lax cookie and logout expires it, JwtAuthFilter passes the verified caller to controllers, and every service and SessionAuth take the caller instead of the HttpSession; tests updated plus JwtServiceTest (tampered, foreign, expired, alg none); 144 tests pass on H2 and 15/15 PostgreSQL race runs pass.
 
 ## What's next
-**Replace session login with JWT: sign an HS256 token at login into an HttpOnly SameSite cookie, verify it in a request filter, pass the identity (not the HttpSession) to services and SessionAuth, clear the cookie on logout, and update every test.**
+**Build the Next.js frontend in frontend/ (home, sign in, browse and book, my bookings, provider workspace, assistant) calling the API through an /api rewrite so the JWT cookie is first-party, replacing the static HTML client.**
 
-**Why this is next:** the agent no longer needs the session, so sessions can now be removed; the Next.js frontend is then built against the JWT API.
+**Why this is next:** the API now uses JWT cookies, which the old static client was not written for, and the Next.js app is the second half of this change.

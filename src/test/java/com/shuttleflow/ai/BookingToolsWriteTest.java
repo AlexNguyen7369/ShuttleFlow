@@ -1,5 +1,6 @@
 package com.shuttleflow.ai;
 
+import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.dto.AppointmentDto;
 import com.shuttleflow.dto.BookingRequest;
 import com.shuttleflow.service.AiConversationService;
@@ -12,7 +13,6 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
@@ -35,12 +35,12 @@ class BookingToolsWriteTest {
     @MockitoBean private AppointmentService appointmentService;
     @Autowired private AiConversationService conversations;
     @Autowired private JdbcTemplate jdbc;
-    private MockHttpSession session;
+    private UserSession session;
 
     @BeforeEach
     void setUp() {
         jdbc.update("DELETE FROM ai_conversations");
-        session = new MockHttpSession();
+        session = new UserSession(ALEX, "alex@shuttleflow.com", "Alex Nguyen", "CUSTOMER", null);
         LocalDateTime start = LocalDateTime.now().plusDays(1).withNano(0);
         when(appointmentService.book(any(), any())).thenReturn(
                 new AppointmentDto(50, 7, "Court 3", "Singles Court Rental", start, start.plusHours(1), "BOOKED"));

@@ -6,7 +6,8 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Lets the static frontend (served on its own port) call the API with the session cookie.
+ * Lets a frontend served on its own origin call the API with the login cookie (the Next.js app normally
+ * proxies /api to the API, so its requests are same-origin and need no CORS).
  * Credentials require an explicit origin list, never "*".
  */
 @Configuration

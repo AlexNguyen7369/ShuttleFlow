@@ -8,13 +8,11 @@ import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.BookingConflictException;
 import com.shuttleflow.service.SlotService;
 import com.shuttleflow.service.AiConversationService;
-import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -120,9 +118,7 @@ class PostgresConcurrentBookingTest {
     }
 
     private Object attempt(long slotId, long userId, CountDownLatch ready, CountDownLatch go) {
-        HttpSession session = new MockHttpSession();
-        session.setAttribute(UserSession.ATTRIBUTE,
-                new UserSession(userId, "customer" + userId + "@example.com", "Customer", "CUSTOMER", null));
+        UserSession session = new UserSession(userId, "customer" + userId + "@example.com", "Customer", "CUSTOMER", null);
         ready.countDown();
         try {
             go.await();

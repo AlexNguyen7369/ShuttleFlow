@@ -1,16 +1,16 @@
 package com.shuttleflow.controller;
 
-import com.shuttleflow.auth.UserSession;
+import com.shuttleflow.auth.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mock.web.MockHttpSession;
+import jakarta.servlet.http.Cookie;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -29,7 +29,7 @@ class AuthControllerIntegrationTest {
     private MockMvc mvc;
 
     @Test
-    void customerLoginCreatesSessionAndReturnsSafeIdentity() throws Exception {
+    void customerLoginSetsAnHttpOnlyTokenCookieAndReturnsSafeIdentity() throws Exception {
         MvcResult result = mvc.perform(post("/auth/login")
                         .contentType("application/json")
                         .content("{\"email\":\"alex@shuttleflow.com\",\"password\":\"alex-test\"}"))
@@ -39,9 +39,13 @@ class AuthControllerIntegrationTest {
                 .andExpect(jsonPath("$.providerId").doesNotExist())
                 .andReturn();
 
-        Object sessionIdentity = result.getRequest().getSession(false).getAttribute(UserSession.ATTRIBUTE);
-        org.junit.jupiter.api.Assertions.assertNotNull(sessionIdentity);
-        org.junit.jupiter.api.Assertions.assertFalse(result.getResponse().getContentAsString().contains("password"));
+        Cookie token = result.getResponse().getCookie(JwtService.COOKIE_NAME);
+        org.junit.jupiter.api.Assertions.assertNotNull(token);
+        assertTrue(token.isHttpOnly(), "page JavaScript must not be able to read the token");
+        assertTrue(result.getResponse().getHeader("Set-Cookie").contains("SameSite=Lax"));
+        String body = result.getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertFalse(body.contains("password"));
+        org.junit.jupiter.api.Assertions.assertFalse(body.contains(token.getValue()), "the token is never in the body");
     }
 
     @Test
@@ -77,42 +81,49 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    void malformedBodyIsBadRequestAndLogoutClearsSession() throws Exception {
+    void malformedBodyIsBadRequestAndLogoutClearsTheCookie() throws Exception {
         mvc.perform(post("/auth/login").contentType("application/json").content("not-json"))
                 .andExpect(status().isBadRequest());
         MvcResult login = mvc.perform(post("/auth/login").contentType("application/json")
                         .content("{\"email\":\"alex@shuttleflow.com\",\"password\":\"alex-test\"}"))
                 .andExpect(status().isOk()).andReturn();
-        mvc.perform(post("/auth/logout").session((org.springframework.mock.web.MockHttpSession)
-                        login.getRequest().getSession(false))).andExpect(status().isNoContent());
+        Cookie cleared = mvc.perform(post("/auth/logout").cookie(login.getResponse().getCookie(JwtService.COOKIE_NAME)))
+                .andExpect(status().isNoContent()).andReturn().getResponse().getCookie(JwtService.COOKIE_NAME);
+        assertEquals(0, cleared.getMaxAge());
+        assertEquals("", cleared.getValue());
     }
 
     @Test
     void sessionEndpointRestoresIdentityAndRejectsAnonymousOrLoggedOutCallers() throws Exception {
         mvc.perform(get("/auth/session")).andExpect(status().isUnauthorized());
-        MockHttpSession session = (MockHttpSession) mvc.perform(post("/auth/provider/login")
+        Cookie session = mvc.perform(post("/auth/provider/login")
                         .contentType("application/json")
                         .content("{\"email\":\"coach.kim@shuttleflow.com\",\"password\":\"coach-kim-test\"}"))
-                .andExpect(status().isOk()).andReturn().getRequest().getSession(false);
-        mvc.perform(get("/auth/session").session(session))
+                .andExpect(status().isOk()).andReturn().getResponse().getCookie(JwtService.COOKIE_NAME);
+        mvc.perform(get("/auth/session").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.role").value("PROVIDER"))
                 .andExpect(jsonPath("$.providerId").value(2))
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
-        mvc.perform(post("/auth/logout").session(session)).andExpect(status().isNoContent());
-        mvc.perform(get("/auth/session").session(session)).andExpect(status().isUnauthorized());
+        // Logout makes the browser drop the cookie; the request that follows carries the emptied cookie.
+        Cookie cleared = mvc.perform(post("/auth/logout").cookie(session)).andExpect(status().isNoContent())
+                .andReturn().getResponse().getCookie(JwtService.COOKIE_NAME);
+        mvc.perform(get("/auth/session").cookie(cleared)).andExpect(status().isUnauthorized());
     }
 
     @Test
-    void loginIssuesFreshSessionInsteadOfReusingPreLoginSession() throws Exception {
-        MockHttpSession preLogin = new MockHttpSession();
-        String preLoginId = preLogin.getId();
-        MockHttpSession afterLogin = (MockHttpSession) mvc.perform(post("/auth/login").session(preLogin)
-                        .contentType("application/json")
+    void tamperedOrForeignTokensAreUnauthorized() throws Exception {
+        String token = mvc.perform(post("/auth/login").contentType("application/json")
                         .content("{\"email\":\"alex@shuttleflow.com\",\"password\":\"alex-test\"}"))
-                .andExpect(status().isOk()).andReturn().getRequest().getSession(false);
-        assertNotEquals(preLoginId, afterLogin.getId());
-        assertTrue(preLogin.isInvalid());
+                .andExpect(status().isOk()).andReturn().getResponse().getCookie(JwtService.COOKIE_NAME).getValue();
+        // Flip one character of the signature.
+        String tampered = token.substring(0, token.length() - 2) + (token.endsWith("A") ? "BB" : "AA");
+        mvc.perform(get("/auth/session").cookie(new Cookie(JwtService.COOKIE_NAME, tampered)))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/auth/session").cookie(new Cookie(JwtService.COOKIE_NAME, "not.a.jwt")))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/auth/session").cookie(new Cookie(JwtService.COOKIE_NAME, token)))
+                .andExpect(status().isOk());
     }
 
     @Test

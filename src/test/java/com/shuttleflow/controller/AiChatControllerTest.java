@@ -1,5 +1,6 @@
 package com.shuttleflow.controller;
 
+import com.shuttleflow.auth.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -13,10 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpSession;
+import jakarta.servlet.http.Cookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.List;
 import java.util.Map;
@@ -48,7 +50,7 @@ class AiChatControllerTest {
 
     @Test
     void customerGetsTheModelReplyAndTheModelSeesTheBookingTools() throws Exception {
-        MockHttpSession alex = login("alex@shuttleflow.com", "alex-test");
+        Cookie alex = login("alex@shuttleflow.com", "alex-test");
 
         chat(alex, "Any courts tomorrow?").andExpect(status().isOk())
                 .andExpect(jsonPath("$.reply").value("Court 3 is open at 9:00."));
@@ -74,7 +76,7 @@ class AiChatControllerTest {
 
     @Test
     void followUpMessagesCarryTheConversationAndTheTurnAdvances() throws Exception {
-        MockHttpSession alex = login("alex@shuttleflow.com", "alex-test");
+        Cookie alex = login("alex@shuttleflow.com", "alex-test");
         chat(alex, "Book the earliest court this week").andExpect(status().isOk());
         chat(alex, "actually make it 2pm").andExpect(status().isOk());
 
@@ -83,16 +85,16 @@ class AiChatControllerTest {
         String secondPrompt = prompts.getAllValues().get(1).getContents();
         assertThat(secondPrompt).contains("Book the earliest court this week", "actually make it 2pm");
 
-        // State lives in the database, keyed by user, with a random memory id that is not the session id.
+        // State lives in the database, keyed by user, with a random memory id that is not the login token.
         Map<String, Object> row = jdbc.queryForMap(
                 "SELECT turn, conversation_id FROM ai_conversations WHERE user_id = 3");
         assertThat(row.get("TURN")).isEqualTo(2);
-        assertThat(row.get("CONVERSATION_ID")).isInstanceOf(String.class).isNotEqualTo(alex.getId());
+        assertThat(row.get("CONVERSATION_ID")).isInstanceOf(String.class).isNotEqualTo(alex.getValue());
     }
 
     @Test
     void blankOrTooLongMessagesAre400() throws Exception {
-        MockHttpSession alex = login("alex@shuttleflow.com", "alex-test");
+        Cookie alex = login("alex@shuttleflow.com", "alex-test");
         chat(alex, "   ").andExpect(status().isBadRequest());
         chat(alex, "x".repeat(1001)).andExpect(status().isBadRequest());
         verify(chatModel, never()).call(any(Prompt.class));
@@ -100,7 +102,7 @@ class AiChatControllerTest {
 
     @Test
     void loggedOutIs401AndProviderIs403() throws Exception {
-        chat(new MockHttpSession(), "hi").andExpect(status().isUnauthorized());
+        chat(null, "hi").andExpect(status().isUnauthorized());
         chat(login("court.manager@shuttleflow.com", "court-manager-test"), "hi").andExpect(status().isForbidden());
         verify(chatModel, never()).call(any(Prompt.class));
     }
@@ -113,14 +115,15 @@ class AiChatControllerTest {
                 .andExpect(jsonPath("$.error").value("The AI assistant is unavailable right now. Please try again later."));
     }
 
-    private ResultActions chat(MockHttpSession session, String message) throws Exception {
+    private ResultActions chat(Cookie session, String message) throws Exception {
         String json = "{\"message\":\"" + message + "\"}";
-        return mvc.perform(post("/ai/chat").session(session).contentType("application/json").content(json));
+        MockHttpServletRequestBuilder request = post("/ai/chat").contentType("application/json").content(json);
+        return mvc.perform(session == null ? request : request.cookie(session));
     }
 
-    private MockHttpSession login(String email, String password) throws Exception {
-        return (MockHttpSession) mvc.perform(post("/auth/login").contentType("application/json")
+    private Cookie login(String email, String password) throws Exception {
+        return mvc.perform(post("/auth/login").contentType("application/json")
                         .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"))
-                .andExpect(status().isOk()).andReturn().getRequest().getSession(false);
+                .andExpect(status().isOk()).andReturn().getResponse().getCookie(JwtService.COOKIE_NAME);
     }
 }

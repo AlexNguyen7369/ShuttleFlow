@@ -1,5 +1,6 @@
 package com.shuttleflow.ai;
 
+import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.dto.AppointmentDto;
 import com.shuttleflow.dto.BookingRequest;
 import com.shuttleflow.dto.SlotDto;
@@ -12,7 +13,6 @@ import com.shuttleflow.service.InvalidRequestException;
 import com.shuttleflow.service.NotFoundException;
 import com.shuttleflow.service.SlotService;
 import com.shuttleflow.service.UnauthorizedException;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -25,7 +25,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * The chat agent's tools. One instance per chat request, holding that request's session, so the
+ * The chat agent's tools. One instance per chat request, holding that request's caller identity, so the
  * model acts as the logged-in user and can never name another user. Tools call services only,
  * never repositories, so every rule of the REST API (RBAC, locks, constraints) still applies.
  * Errors go back to the model as text it can explain to the user.
@@ -37,17 +37,17 @@ public class BookingTools {
     private final SlotService slotService;
     private final AppointmentService appointmentService;
     private final AiConversationService conversations;
-    private final HttpSession session;
+    private final UserSession caller;
     private final long userId;
     private final int turn;
 
     /** {@code turn} is this chat request's turn number; confirms need a pending action from the one before. */
     public BookingTools(SlotService slotService, AppointmentService appointmentService,
-                        AiConversationService conversations, HttpSession session, long userId, int turn) {
+                        AiConversationService conversations, UserSession caller, long userId, int turn) {
         this.slotService = slotService;
         this.appointmentService = appointmentService;
         this.conversations = conversations;
-        this.session = session;
+        this.caller = caller;
         this.userId = userId;
         this.turn = turn;
     }
@@ -92,7 +92,7 @@ public class BookingTools {
     @Tool(description = "List the logged-in customer's upcoming booked appointments, earliest first, at most 10.")
     public String listMyAppointments() {
         return run(() -> {
-            List<AppointmentDto> appointments = appointmentService.list("upcoming", session);
+            List<AppointmentDto> appointments = appointmentService.list("upcoming", caller);
             if (appointments.isEmpty()) {
                 return "You have no upcoming appointments.";
             }
@@ -123,7 +123,7 @@ public class BookingTools {
             if (slotId.isEmpty()) {
                 return refusal("booking");
             }
-            AppointmentDto booked = appointmentService.book(new BookingRequest(slotId.get(), null), session);
+            AppointmentDto booked = appointmentService.book(new BookingRequest(slotId.get(), null), caller);
             return "Booked: appointmentId=" + booked.getAppointmentId() + " | " + booked.getProviderName() + " | "
                     + booked.getServiceName() + " | " + booked.getStartTime() + " to "
                     + booked.getEndTime().toLocalTime();
@@ -148,7 +148,7 @@ public class BookingTools {
             if (appointmentId.isEmpty()) {
                 return refusal("cancellation");
             }
-            appointmentService.cancel(appointmentId.get(), session);
+            appointmentService.cancel(appointmentId.get(), caller);
             return "Cancelled appointmentId=" + appointmentId.get() + ".";
         });
     }
