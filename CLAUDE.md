@@ -61,7 +61,9 @@ mvn test                   # run tests (src/test/java/com/shuttleflow/)
 
 Requires JDK 17+, Maven 3.9+ and PostgreSQL (tests need no server; set `SHUTTLEFLOW_PG_TEST_URL` to also run the PostgreSQL race test). Smoke check: `curl localhost:8080/` and `curl localhost:8080/slots`.
 
-`schema.sql` and `seed.sql` reload on every startup (`spring.sql.init.mode=always`), so local data resets on restart.
+`schema.sql` and `seed.sql` reload on every startup (`spring.sql.init.mode=always`), so local data resets on restart. Hosted (Render) runs with `SQL_INIT_MODE=never` and `DB_INIT_IF_EMPTY=true`, so `DatabaseInitializer` seeds only an empty database.
+
+Deployment: Next.js on Vercel (Root Directory `frontend`, `API_URL` = the API URL), the API on Render from `render.yaml` + `Dockerfile`, PostgreSQL on Neon. See README "Deploy".
 
 ## Conventions
 
