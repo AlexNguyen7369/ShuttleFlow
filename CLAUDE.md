@@ -7,7 +7,8 @@ Badminton court and coach booking system (CMPE 172 project). Requirements: `docs
 - Java 17, Spring Boot 3.5.16 (`spring-boot-starter-web`, `spring-boot-starter-jdbc`), Maven
 - SQL via `JdbcTemplate` — no ORM
 - PostgreSQL at runtime (`application.properties`); in-memory H2 (PostgreSQL mode) for tests only. One `schema.sql` serves both, so keep SQL standard/portable
-- Frontend: dependency-free static HTML/CSS/JS in `frontend/` (served on :5173, calls the API with the session cookie)
+- Frontend: Next.js 16 (App Router, JavaScript) in `frontend/` (`npm run dev` on :5173); calls `/api/*`, which it rewrites to the API on :8080
+- Auth: signed JWT (HS256, nimbus-jose-jwt) in an `HttpOnly`, `SameSite=Lax` cookie `SF_AUTH`; no HTTP session. Services take the caller (`UserSession`), never the token
 
 ## Hard rules
 
@@ -37,7 +38,7 @@ src/main/java/com/shuttleflow/
 ├── repository/                         @Repository — JdbcTemplate + RowMapper (Slot, User, Appointment, Provider, Notification, Health)
 ├── dto/                                immutable request/response types
 ├── ai/                                 M4: BookingTools (agent tools), ChatAgentService, ReminderAgent, KnowledgeService (RAG)
-├── auth/                               UserSession (session identity) + SessionAuth (401/403 guards)
+├── auth/                               JwtService + JwtAuthFilter (login token), UserSession (caller identity), SessionAuth (401/403 guards)
 └── config/                             PasswordConfig (BCrypt), CorsConfig
 src/main/resources/
 ├── application.properties              datasource + sql.init + Gemini (api-key only)
@@ -45,6 +46,7 @@ src/main/resources/
 ├── seed.sql                            sample data
 └── knowledge/shuttleflow-policies.md   RAG knowledge source
 src/test/java/com/shuttleflow/          tests mirroring the main package
+frontend/                               Next.js app: app/ pages, lib/api.js, next.config.mjs (/api rewrite)
 ```
 
 ## Build and test
