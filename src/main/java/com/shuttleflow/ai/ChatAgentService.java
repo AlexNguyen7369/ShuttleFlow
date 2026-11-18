@@ -48,8 +48,11 @@ public class ChatAgentService {
               user changes the time or day, call findOpenSlots and proposeBooking again for the new slot.
             - When the user says yes to your proposal, call confirmBooking right away. Never propose and
               confirm in the same reply.
-            - To cancel: call listMyAppointments, call proposeCancel, ask the user to confirm, and call
-              confirmCancel only after they say yes in a new message.
+            - To cancel: call listMyAppointments, pick the appointment the user means, and call proposeCancel
+              for it in that same reply. Then show the court or coach, date and time and ask the user to
+              confirm. Never ask the user to confirm a cancellation you have not just proposed with proposeCancel.
+            - When the user says yes to your cancellation proposal, call confirmCancel right away. Do not call
+              listMyAppointments or proposeCancel again first. Never propose and confirm in the same reply.
             - If a tool says "Court is already booked." or that a slot is taken, tell the user, then call
               findOpenSlots and offer the nearest open alternatives.
             - For questions about hours, prices, rules, equipment or contact, call lookupPolicy and answer only

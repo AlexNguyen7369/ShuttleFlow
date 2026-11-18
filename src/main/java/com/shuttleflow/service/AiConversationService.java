@@ -49,6 +49,11 @@ public class AiConversationService {
 
     public void propose(long userId, String kind, long targetId, int turn) {
         repository.insertIfMissing(userId, UUID.randomUUID().toString());
+        Optional<PendingRecord> current = repository.findPending(userId);
+        if (current.isPresent() && current.get().kind().equals(kind)
+                && current.get().targetId() == targetId && current.get().turn() == turn - 1) {
+            return; // Same proposal repeated on the "yes" turn: keep it confirmable.
+        }
         repository.setPending(userId, kind, targetId, turn);
     }
 

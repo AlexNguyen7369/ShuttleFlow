@@ -65,6 +65,7 @@
 62. 2026-11-17 — Alex Nguyen — Added hosting settings: server.port from PORT (Render) and the connection pool size from DB_POOL_SIZE (5 on Render for Neon's connection limit).
 63. 2026-11-17 — Alex Nguyen — Added render.yaml (free Docker web service, /health check, deploy after CI passes, data-keeping init, pool size 5, Secure cookie, generated JWT_SECRET, Neon and Gemini secrets entered in Render) and made the notification URL default to Render's RENDER_EXTERNAL_URL.
 64. 2026-11-17 — Alex Nguyen — Documented deployment: README "Deploy (Vercel + Render + Neon)" with steps, the secrets table and free-tier caveats, deployment decisions in docs/decisions.md, a CLAUDE.md note, and frontend/.env.example for API_URL.
+65. 2026-11-17 — Alex Nguyen — Fixed the assistant asking twice before cancelling: cancel prompt rules now match booking (propose in the same reply, confirm right away on yes), and re-proposing the same action on the yes turn keeps it confirmable, with tests.
 
 ## What's next
 **Create the hosted services: a Neon database, the Render Blueprint from render.yaml with the Neon and Gemini secrets, and the Vercel project (Root Directory frontend, API_URL set to the Render URL), then verify the live site end to end.**

@@ -107,6 +107,26 @@ class BookingToolsWriteTest {
     }
 
     @Test
+    void reProposingTheSameCancelOnTheYesTurnStillConfirms() {
+        turn(1).proposeCancel(50);
+        BookingTools yesTurn = turn(2);
+        yesTurn.proposeCancel(50);
+
+        assertThat(yesTurn.confirmCancel()).isEqualTo("Cancelled appointmentId=50.");
+        verify(appointmentService).cancel(50L, session);
+    }
+
+    @Test
+    void proposingADifferentTargetReplacesThePending() {
+        turn(1).proposeCancel(50);
+        BookingTools nextTurn = turn(2);
+        nextTurn.proposeCancel(51);
+
+        assertThat(nextTurn.confirmCancel()).startsWith("Error: no cancellation is waiting");
+        verify(appointmentService, never()).cancel(anyLong(), any());
+    }
+
+    @Test
     void bookingConflictComesBackAsTheStandardMessage() {
         when(appointmentService.book(any(), any())).thenThrow(new BookingConflictException());
         turn(1).proposeBooking(7);
