@@ -12,12 +12,14 @@ import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class AiChatControllerTest {
     @Autowired private MockMvc mvc;
+    @Autowired private JdbcTemplate jdbc;
     @MockitoBean private ChatModel chatModel;
 
     @BeforeEach
@@ -80,9 +83,11 @@ class AiChatControllerTest {
         String secondPrompt = prompts.getAllValues().get(1).getContents();
         assertThat(secondPrompt).contains("Book the earliest court this week", "actually make it 2pm");
 
-        assertThat(alex.getAttribute("ai.turn")).isEqualTo(2);
-        Object conversationId = alex.getAttribute("ai.conversationId");
-        assertThat(conversationId).isInstanceOf(String.class).isNotEqualTo(alex.getId());
+        // State lives in the database, keyed by user, with a random memory id that is not the session id.
+        Map<String, Object> row = jdbc.queryForMap(
+                "SELECT turn, conversation_id FROM ai_conversations WHERE user_id = 3");
+        assertThat(row.get("TURN")).isEqualTo(2);
+        assertThat(row.get("CONVERSATION_ID")).isInstanceOf(String.class).isNotEqualTo(alex.getId());
     }
 
     @Test

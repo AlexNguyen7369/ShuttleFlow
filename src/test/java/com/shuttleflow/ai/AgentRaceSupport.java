@@ -1,6 +1,7 @@
 package com.shuttleflow.ai;
 
 import com.shuttleflow.auth.UserSession;
+import com.shuttleflow.service.AiConversationService;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.SlotService;
 import jakarta.servlet.http.HttpSession;
@@ -22,6 +23,7 @@ public final class AgentRaceSupport {
     }
 
     public static long freshSlot(JdbcTemplate jdbc) {
+        jdbc.update("DELETE FROM ai_conversations");
         jdbc.update("DELETE FROM notifications");
         jdbc.update("DELETE FROM appointments");
         jdbc.update("DELETE FROM availability_slots");
@@ -43,21 +45,41 @@ public final class AgentRaceSupport {
         return jdbc.queryForObject("SELECT COUNT(*) FROM appointments WHERE active_slot_id = ?", Integer.class, slotId);
     }
 
-    /** Each thread proposes in turn 1, then all confirm in turn 2 at the same moment. */
-    public static List<String> race(int threads, long slotId, SlotService slotService, AppointmentService appointmentService)
+    /** Returns the ids of {@code count} customer accounts, creating test-only ones as needed. */
+    public static List<Long> customers(JdbcTemplate jdbc, int count) {
+        List<Long> ids = new ArrayList<>();
+        for (int i = 1; i <= count; i++) {
+            String email = "race" + i + "@example.com";
+            jdbc.update("INSERT INTO users (email, password_hash, full_name, role) SELECT ?, 'not-a-login', ?, 'CUSTOMER'"
+                    + " WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = ?)", email, "Racer " + i, email);
+            ids.add(jdbc.queryForObject("SELECT user_id FROM users WHERE email = ?", Long.class, email));
+        }
+        return ids;
+    }
+
+    /**
+     * Each customer proposes in turn 1, then all confirm in turn 2 at the same moment. One customer per
+     * thread, because the assistant keeps one conversation (and one pending action) per user.
+     */
+    public static List<String> race(List<Long> customerIds, long slotId, SlotService slotService,
+                                    AppointmentService appointmentService, AiConversationService conversations)
             throws Exception {
+        int threads = customerIds.size();
         CountDownLatch ready = new CountDownLatch(threads);
         CountDownLatch go = new CountDownLatch(1);
         ExecutorService pool = Executors.newFixedThreadPool(threads);
         try {
             List<Future<String>> futures = new ArrayList<>();
             for (int i = 0; i < threads; i++) {
-                HttpSession session = customer(i % 2 == 0 ? 3L : 4L); // the two seeded customers
+                long userId = customerIds.get(i);
+                HttpSession session = customer(userId);
                 futures.add(pool.submit(() -> {
-                    new BookingTools(slotService, appointmentService, session, 1).proposeBooking(slotId);
+                    new BookingTools(slotService, appointmentService, conversations, session, userId, 1)
+                            .proposeBooking(slotId);
                     ready.countDown();
                     go.await();
-                    return new BookingTools(slotService, appointmentService, session, 2).confirmBooking();
+                    return new BookingTools(slotService, appointmentService, conversations, session, userId, 2)
+                            .confirmBooking();
                 }));
             }
             if (!ready.await(5, TimeUnit.SECONDS)) {

@@ -19,11 +19,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SessionAuth sessionAuth;
+    private final AiConversationService conversations;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, SessionAuth sessionAuth) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, SessionAuth sessionAuth,
+                       AiConversationService conversations) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.sessionAuth = sessionAuth;
+        this.conversations = conversations;
     }
 
     public LoginResponse login(LoginRequest request, HttpServletRequest httpRequest, boolean providerLogin) {
@@ -49,6 +52,8 @@ public class AuthService {
         UserSession userSession = new UserSession(account.userId(), account.email(), account.fullName(),
                 account.role(), account.providerId());
         httpRequest.getSession(true).setAttribute(UserSession.ATTRIBUTE, userSession);
+        // A fresh login starts a fresh assistant conversation: nothing pending carries over.
+        conversations.reset(account.userId());
         return toResponse(userSession);
     }
 
