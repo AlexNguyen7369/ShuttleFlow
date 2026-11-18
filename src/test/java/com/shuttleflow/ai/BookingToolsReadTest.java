@@ -2,6 +2,7 @@ package com.shuttleflow.ai;
 
 import com.shuttleflow.dto.AppointmentDto;
 import com.shuttleflow.dto.SlotDto;
+import com.shuttleflow.service.AiConversationService;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.SlotService;
 import com.shuttleflow.service.UnauthorizedException;
@@ -39,7 +40,7 @@ class BookingToolsReadTest {
         slotService = mock(SlotService.class);
         appointmentService = mock(AppointmentService.class);
         session = new MockHttpSession();
-        tools = new BookingTools(slotService, appointmentService, session, 1);
+        tools = new BookingTools(slotService, appointmentService, mock(AiConversationService.class), session, 3L, 1);
     }
 
     @Test

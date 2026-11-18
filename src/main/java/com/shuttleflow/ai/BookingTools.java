@@ -3,6 +3,7 @@ package com.shuttleflow.ai;
 import com.shuttleflow.dto.AppointmentDto;
 import com.shuttleflow.dto.BookingRequest;
 import com.shuttleflow.dto.SlotDto;
+import com.shuttleflow.service.AiConversationService;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.BookingConflictException;
 import com.shuttleflow.service.ConflictException;
@@ -20,6 +21,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -34,15 +36,19 @@ public class BookingTools {
 
     private final SlotService slotService;
     private final AppointmentService appointmentService;
+    private final AiConversationService conversations;
     private final HttpSession session;
+    private final long userId;
     private final int turn;
 
-    /** {@code turn} is this chat request's turn number; confirms need a pending action from an earlier one. */
-    public BookingTools(SlotService slotService, AppointmentService appointmentService, HttpSession session,
-                        int turn) {
+    /** {@code turn} is this chat request's turn number; confirms need a pending action from the one before. */
+    public BookingTools(SlotService slotService, AppointmentService appointmentService,
+                        AiConversationService conversations, HttpSession session, long userId, int turn) {
         this.slotService = slotService;
         this.appointmentService = appointmentService;
+        this.conversations = conversations;
         this.session = session;
+        this.userId = userId;
         this.turn = turn;
     }
 
@@ -105,7 +111,7 @@ public class BookingTools {
         if (slotId < 1) {
             return "Error: slotId must be a positive number.";
         }
-        session.setAttribute(PendingAction.SESSION_KEY, new PendingAction(PendingAction.Kind.BOOK, slotId, turn));
+        conversations.propose(userId, AiConversationService.BOOK, slotId, turn);
         return "Booking of slotId=" + slotId + " is proposed but NOT booked. Ask the user to confirm.";
     }
 
@@ -113,11 +119,11 @@ public class BookingTools {
             + "confirmed in a new message.")
     public String confirmBooking() {
         return run(() -> {
-            PendingAction pending = takeConfirmable(PendingAction.Kind.BOOK);
-            if (pending == null) {
+            Optional<Long> slotId = conversations.takeConfirmable(userId, AiConversationService.BOOK, turn);
+            if (slotId.isEmpty()) {
                 return refusal("booking");
             }
-            AppointmentDto booked = appointmentService.book(new BookingRequest(pending.targetId(), null), session);
+            AppointmentDto booked = appointmentService.book(new BookingRequest(slotId.get(), null), session);
             return "Booked: appointmentId=" + booked.getAppointmentId() + " | " + booked.getProviderName() + " | "
                     + booked.getServiceName() + " | " + booked.getStartTime() + " to "
                     + booked.getEndTime().toLocalTime();
@@ -130,8 +136,7 @@ public class BookingTools {
         if (appointmentId < 1) {
             return "Error: appointmentId must be a positive number.";
         }
-        session.setAttribute(PendingAction.SESSION_KEY,
-                new PendingAction(PendingAction.Kind.CANCEL, appointmentId, turn));
+        conversations.propose(userId, AiConversationService.CANCEL, appointmentId, turn);
         return "Cancellation of appointmentId=" + appointmentId + " is proposed but NOT done. Ask the user to confirm.";
     }
 
@@ -139,33 +144,13 @@ public class BookingTools {
             + "explicitly confirmed in a new message.")
     public String confirmCancel() {
         return run(() -> {
-            PendingAction pending = takeConfirmable(PendingAction.Kind.CANCEL);
-            if (pending == null) {
+            Optional<Long> appointmentId = conversations.takeConfirmable(userId, AiConversationService.CANCEL, turn);
+            if (appointmentId.isEmpty()) {
                 return refusal("cancellation");
             }
-            appointmentService.cancel(pending.targetId(), session);
-            return "Cancelled appointmentId=" + pending.targetId() + ".";
+            appointmentService.cancel(appointmentId.get(), session);
+            return "Cancelled appointmentId=" + appointmentId.get() + ".";
         });
-    }
-
-    /**
-     * The code-level confirm-before-write guard: returns the pending action only if it has the right
-     * kind and was proposed in the turn just before this one, so the user's latest message is the
-     * reply to that proposal. An older proposal expires.
-     * A used action is removed, so one "yes" can never commit twice.
-     */
-    private PendingAction takeConfirmable(PendingAction.Kind kind) {
-        if (!(session.getAttribute(PendingAction.SESSION_KEY) instanceof PendingAction pending)
-                || pending.kind() != kind || pending.turn() >= turn) {
-            return null;
-        }
-        if (pending.turn() != turn - 1) {
-            // Stale: the user moved on after the proposal, so this message is not the answer to it.
-            session.removeAttribute(PendingAction.SESSION_KEY);
-            return null;
-        }
-        session.removeAttribute(PendingAction.SESSION_KEY);
-        return pending;
     }
 
     private String refusal(String what) {

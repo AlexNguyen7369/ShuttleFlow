@@ -54,8 +54,9 @@
 51. 2026-11-16 — Alex Nguyen — Verified M4 end to end: docker compose up with the real key (chat booked only after "yes", /ai/ask answered from the Hours section, /ai/reminders/run queued two LLM reminders that reached /mock-notifications as SENT), mvn test 136 passing, mvn clean package, CI green, reviewer findings fixed, and no API key in git history or tracked files (M4 item 16).
 52. 2026-11-16 — Alex Nguyen — Committed the pending dashboard tooling changes, ignored .vibe-wise/ notes, and added the Milestone 4 report draft (Milestone4/m4-report.html, also published as a private claude.ai artifact) for the author to rewrite.
 53. 2026-11-17 — Alex Nguyen — Started the Next.js and JWT work on branch feature/nextjs-jwt and recorded its decisions in docs/decisions.md: JWT in an HttpOnly SameSite cookie, no HTTP session, chat-agent state in an ai_conversations table, and Next.js replacing frontend/ behind an /api rewrite.
+54. 2026-11-17 — Alex Nguyen — Moved the chat agent's turn number, pending propose/confirm action and memory id from the HTTP session to a new ai_conversations table (AiConversationRepository, AiConversationService with an atomic claim-once confirm), reset on login; the agent race now uses one customer per thread; 137 tests pass on H2 and 15/15 PostgreSQL race runs pass.
 
 ## What's next
-**Move the chat agent's turn number, pending propose/confirm action and memory id from the HTTP session into an ai_conversations table keyed by user id, keeping the confirm-before-write rules and tests green.**
+**Replace session login with JWT: sign an HS256 token at login into an HttpOnly SameSite cookie, verify it in a request filter, pass the identity (not the HttpSession) to services and SessionAuth, clear the cookie on logout, and update every test.**
 
-**Why this is next:** JWT login removes the HTTP session, so the agent's state needs its new home before sessions can be removed.
+**Why this is next:** the agent no longer needs the session, so sessions can now be removed; the Next.js frontend is then built against the JWT API.
