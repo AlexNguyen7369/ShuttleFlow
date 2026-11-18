@@ -19,3 +19,8 @@ video_script2.md
 
 # Local Docker secrets (.env.example is the committed template)
 .env
+
+# Next.js frontend dependencies and build output
+frontend/node_modules/
+frontend/.next/
+frontend/next-env.d.ts

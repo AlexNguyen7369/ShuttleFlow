@@ -30,13 +30,15 @@ This repo implements stage 1 plus the Milestone 4 AI layer (stage 4: a booking c
 - **Backend:** Java 17, Spring Boot 3.5 (`spring-boot-starter-web` + `spring-boot-starter-jdbc`) — no ORM, raw SQL via `JdbcTemplate`
 - **AI:** Spring AI 1.1.8 with the Gemini API free tier (`gemini-3.5-flash-lite` chat, `gemini-embedding-001` embeddings) and an in-memory `SimpleVectorStore`
 - **Database:** PostgreSQL at runtime; H2 is test-only infrastructure with an in-memory test profile
-- **Frontend:** dependency-free static HTML/CSS/JavaScript under `frontend/`
+- **Frontend:** Next.js 16 (React 19, App Router) under `frontend/`, calling the API through an `/api` rewrite
+- **Auth:** signed JWT (HS256) in an `HttpOnly`, `SameSite=Lax` cookie; no server session
 - **Architecture:** Front Controller (Spring's `DispatcherServlet`) routing to `@RestController` → `@Service` → `@Repository` → DTO layers
 
 ## Prerequisites
 
 - JDK 17+
 - Maven 3.9+
+- Node.js 20.9+ (for the Next.js frontend)
 - PostgreSQL 14+ running locally (runtime database; tests use in-memory H2 and need no server)
 - Optional: a free Gemini API key from https://aistudio.google.com/apikey for the AI features (tests never need it)
 
@@ -68,8 +70,12 @@ Then start the API and the browser client in two terminals:
 ```bash
 export GEMINI_API_KEY=...                             # optional: enables the AI features
 mvn spring-boot:run                                   # API on http://localhost:8080
-python3 -m http.server 5173 --directory frontend      # UI on http://localhost:5173
+
+cd frontend && npm install && npm run dev             # UI on http://localhost:5173 (proxies /api to :8080)
 ```
+
+Set `JWT_SECRET` (32+ characters) to keep sign-ins valid across API restarts;
+without it a random secret is used and everyone signs in again after a restart.
 
 Override the connection with `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`,
 `DB_PASSWORD` (or `SPRING_DATASOURCE_URL`), and the allowed UI origins with
@@ -94,10 +100,10 @@ These passwords are for local/test fixtures only, not deployment credentials.
 |---|---|---|---|
 | `GET /` | anyone | `200` app name + open-slot count | — |
 | `GET /slots` | anyone | `200` page of open future slots | `400` |
-| `POST /auth/login` | anyone | `200` identity, session created | `400`, `401` |
+| `POST /auth/login` | anyone | `200` identity; sets the `SF_AUTH` JWT cookie | `400`, `401` |
 | `POST /auth/provider/login` | provider | `200` identity + `providerId` | `400`, `401`, `403` |
-| `GET /auth/session` | signed in | `200` current identity | `401` |
-| `POST /auth/logout` | anyone | `204` session invalidated | — |
+| `GET /auth/session` | signed in | `200` identity from the JWT cookie | `401` |
+| `POST /auth/logout` | anyone | `204` cookie expired | — |
 | `POST /appointments` | customer | `201` `BOOKED` appointment | `400`, `401`, `403`, `404`, `409` |
 | `GET /appointments?view=upcoming\|history` | customer | `200` caller's appointments | `400`, `401`, `403` |
 | `DELETE /appointments/{id}` | owning customer | `204` cancelled, slot reopened | `401`, `403`, `404`, `409` |
@@ -146,12 +152,17 @@ malformed/past `date` returns `400`.
 
 Login checks the password against the stored BCrypt hash; unknown email and
 wrong password return the identical `401 "Invalid email or password."` so
-accounts cannot be enumerated. A successful login invalidates any previous
-session and issues a new one (prevents session fixation), then stores an
-immutable `UserSession` (user ID, role, provider ID; never a password) in it.
-`SessionAuth.requireCustomer` / `requireProvider` turn a missing session into
-`401` and the wrong role into `403`; ownership checks (`appointment.user_id`,
-`slot.provider_id`) add `403` for other people's records.
+accounts cannot be enumerated. A successful login signs a JWT (HS256, user ID,
+role, provider ID, name, email; never a password) and returns it in an
+`HttpOnly`, `SameSite=Lax` cookie, so page JavaScript can never read it. The
+server keeps no session: `JwtAuthFilter` verifies the cookie on each request
+(HS256 only, signature and expiry checked) and passes the caller to the
+controller. `SessionAuth.requireCustomer` / `requireProvider` turn a missing or
+invalid token into `401` and the wrong role into `403`; ownership checks
+(`appointment.user_id`, `slot.provider_id`) add `403` for other people's
+records. Tokens expire after 2 hours (`JWT_TTL_MINUTES`); being stateless, a
+token cannot be revoked earlier, so logout tells the browser to delete the
+cookie.
 
 ### Booking transaction and concurrency
 
@@ -197,12 +208,12 @@ See `docs/features/09-booking-notifications.md` (with the failure scenario) and
 - **Booking chat agent** (`POST /ai/chat`). Gemini calls tools that wrap the
   existing services: `findOpenSlots`, `listMyAppointments`, `proposeBooking` /
   `confirmBooking`, `proposeCancel` / `confirmCancel` and `lookupPolicy`. The
-  tools are built per request with the caller's session, so the agent acts as
+  tools are built per request with the caller's identity, so the agent acts as
   the logged-in customer and keeps every RBAC, `FOR UPDATE` and
   `UNIQUE (active_slot_id)` rule. Writes are confirm-before-write in code: a
   confirm only runs for a proposal made just before the user's latest message,
-  and an older proposal expires. Conversation memory
-  is keyed by a random id in the session.
+  and an older proposal expires. The turn counter, pending action and chat-memory
+  id live in the `ai_conversations` table, keyed by user.
 - **Reminder agent** (autonomous). Every 15 minutes it finds booked appointments
   starting within 24 hours without a reminder, has Gemini write one, and queues
   it in the M3 outbox (`REMINDER:<id>`), which sends it to the notification
@@ -222,17 +233,19 @@ reminders now**; `GET /metrics` shows `remindersQueued`. Details:
 
 ### Browser client
 
-`frontend/` is a dependency-free HTML/CSS/JS client: home, login (customer or
-provider), browse/filter/paginate, a booking confirmation dialog, my bookings
-(upcoming/history) with cancellation, the provider workspace (service
-picker, create/remove availability, booked appointments, run reminders), and
-the AI assistant (booking chat and policy questions). It calls the API
-with `credentials: "include"`; `CorsConfig` allows its origin with cookies.
+`frontend/` is a Next.js app: home, login (customer or provider),
+browse/filter/paginate with a booking confirmation dialog, my bookings
+(upcoming/history) with cancellation, the provider workspace (service picker,
+create/remove availability, booked appointments, run reminders), and the AI
+assistant (booking chat and policy questions). It calls `/api/...`, which
+`next.config.mjs` forwards to the API (`API_URL`), so the JWT cookie is
+first-party and no CORS is needed. See `frontend/README.md`.
 
 ## Testing
 
 ```bash
-mvn test                       # 132 tests on in-memory H2 (no server or Gemini key needed)
+mvn test                       # 144 tests on in-memory H2 (no server or Gemini key needed)
+cd frontend && npm run build   # Next.js production build
 mvn clean package              # build target/shuttleflow-0.1.0.jar
 
 # Also run the 8-thread same-slot race 10 times against real PostgreSQL:
@@ -245,7 +258,8 @@ SHUTTLEFLOW_PG_TEST_URL=jdbc:postgresql://localhost:5432/shuttleflow_test mvn te
 | `BookingServiceUnitTest` | Service rules with mocked repositories: roles, ownership, past/booked slots, constraint-violation → `409` |
 | `M2ServiceRulesTest` | Service rules against the real schema |
 | `SlotControllerBrowseTest` | Filters, ordering, `LIMIT/OFFSET` paging, future-only, `400`s |
-| `AuthControllerIntegrationTest` | Login equivalence, sessions, fixation, logout, CORS, framework errors |
+| `AuthControllerIntegrationTest` | Login equivalence, HttpOnly JWT cookie, tampered tokens, logout, CORS, framework errors |
+| `JwtServiceTest` | Token round trip; expired, foreign-secret, `alg: none` and edited-claim tokens rejected; short secret refused; cookie flags |
 | `M2EndpointIntegrationTest` | Every booking/provider route: `201/204/400/401/403/404/409` and DB effects |
 | `SessionAuthTest`, `SeedPasswordHashTest` | Role guards; seed hashes are BCrypt |
 | `ConcurrentBookingTest` | Two customers released by a latch on one slot: one `201`, one conflict |
@@ -256,14 +270,15 @@ SHUTTLEFLOW_PG_TEST_URL=jdbc:postgresql://localhost:5432/shuttleflow_test mvn te
 | `MockNotificationControllerTest` | `202` new key, `200` repeat stored once, `400` blank fields |
 | `HealthControllerTest`, `MetricsControllerTest` | `/health` UP `200` / DOWN `503`; booking and conflict counters |
 | `BookingToolsReadTest`, `BookingToolsWriteTest` | Agent tools: sorting/capping, errors as text, same-turn confirm refused, one confirm per proposal |
-| `AgentDoubleBookingTest` | Required M4 test: two sessions propose and confirm one slot through the agent tools, one books, one gets "Court is already booked."; 8-thread race; provider refused (also on PostgreSQL) |
+| `AgentDoubleBookingTest` | Required M4 test: two customers propose and confirm one slot through the agent tools, one books, one gets "Court is already booked."; 8-thread race; provider refused (also on PostgreSQL) |
 | `AiChatControllerTest` | `/ai/chat` with a stubbed model: tools offered, multi-turn memory, `400/401/403/503` |
 | `KnowledgeServiceTest`, `AiAskControllerTest`, `PolicyFileTest` | RAG retrieval and grounding with offline embeddings; policy file matches the seeded prices |
 | `ReminderAgentTest`, `ReminderSelfCheckTest` | One reminder per due appointment, none on re-run, template fallbacks, self-check, provider-only trigger, metrics |
 | `GeminiConfigTest`, `ReminderSchemaTest` | AI beans start with a dummy key and no Vertex settings; reminder type and seeded due appointment |
 
 GitHub Actions (`.github/workflows/ci.yml`) runs `mvn -B verify` on every push
-and pull request, with a `postgres:16` service so the race test runs too.
+and pull request, with a `postgres:16` service so the race test runs too, and
+builds the Next.js frontend.
 
 ## Project structure
 
@@ -273,7 +288,7 @@ src/main/java/com/shuttleflow/
   service/      validation, RBAC/ownership, booking rules, transactions, outbox + NotificationGateway, health, metrics
   repository/   parameterized JdbcTemplate SQL constants + RowMappers (User, Slot, Appointment, Provider, Notification, Health)
   dto/          immutable request/response objects
-  auth/         UserSession (identity in the HTTP session) + SessionAuth (401/403 guards)
+  auth/         JwtService + JwtAuthFilter (login token), UserSession (caller identity), SessionAuth (401/403 guards)
   config/       PasswordConfig (BCrypt), CorsConfig (frontend origin + cookies)
   ai/           BookingTools (agent tools), ChatAgentService, ReminderAgent, KnowledgeService (RAG)
 src/main/resources/
@@ -282,8 +297,8 @@ src/main/resources/
   seed.sql                 4 users, 2 providers, 3 services, 7 open future slots + 1 booked appointment 6h after boot
   knowledge/               shuttleflow-policies.md, the RAG knowledge source
 src/test/                  unit, integration, and concurrency tests (H2 profile; optional PostgreSQL race)
-frontend/                  index.html + src/app.js + src/styles.css
-docs/                      decisions, schema notes, feature specs 01-10
+frontend/                  Next.js app (app/ pages, lib/api.js, next.config.mjs /api rewrite)
+docs/                      decisions, schema notes, feature specs 01-13
 Milestone1/                M1 walkthrough script (gitignored)
 Milestone2/                assignment PDF, plan, checklist, evidence report, summary, walkthrough scripts
 Milestone3/                assignment PDF, checklist, implementation plan, distribution diagram

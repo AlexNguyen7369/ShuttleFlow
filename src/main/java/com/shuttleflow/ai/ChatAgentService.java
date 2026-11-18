@@ -1,38 +1,40 @@
 package com.shuttleflow.ai;
 
 import com.shuttleflow.auth.SessionAuth;
+import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.dto.ChatRequest;
 import com.shuttleflow.dto.ChatResponseDto;
+import com.shuttleflow.repository.AiConversationRepository.TurnRecord;
+import com.shuttleflow.service.AiConversationService;
 import com.shuttleflow.service.AiUnavailableException;
 import com.shuttleflow.service.AppointmentService;
+import com.shuttleflow.service.ConflictException;
 import com.shuttleflow.service.InvalidRequestException;
 import com.shuttleflow.service.SlotService;
-import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.WebUtils;
 
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.time.format.DateTimeFormatter;
-import java.util.UUID;
 
 /**
  * Agent 1: the booking assistant. Each request builds fresh BookingTools holding the caller's
- * session and turn number, so the model acts only as that user and confirm-before-write is
- * enforced in code. Conversation memory is keyed by a random id kept in the session, never the
- * session id itself.
+ * identity and turn number, so the model acts only as that user and confirm-before-write is
+ * enforced in code. The turn number and the random conversation (memory) id live in the
+ * ai_conversations table, keyed by user.
  */
 @Service
 public class ChatAgentService {
     private static final Logger log = LoggerFactory.getLogger(ChatAgentService.class);
 
     static final int MAX_MESSAGE_LENGTH = 1000;
-    static final String TURN_KEY = "ai.turn";
-    static final String CONVERSATION_KEY = "ai.conversationId";
 
     static final String SYSTEM_PROMPT = """
             You are the ShuttleFlow booking assistant for a badminton facility with courts and coaches.
@@ -62,10 +64,12 @@ public class ChatAgentService {
     private final AppointmentService appointmentService;
     private final SessionAuth sessionAuth;
     private final KnowledgeService knowledgeService;
+    private final AiConversationService conversations;
+    private final Map<Long, ReentrantLock> inFlight = new ConcurrentHashMap<>();
 
     public ChatAgentService(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory, SlotService slotService,
                             AppointmentService appointmentService, SessionAuth sessionAuth,
-                            KnowledgeService knowledgeService) {
+                            KnowledgeService knowledgeService, AiConversationService conversations) {
         // shortcut: in-memory chat memory is lost on restart and never evicts old conversations; switch to
         // JDBC chat memory if conversations must survive restarts or the app runs for long.
         this.chatClient = chatClientBuilder
@@ -75,10 +79,11 @@ public class ChatAgentService {
         this.appointmentService = appointmentService;
         this.sessionAuth = sessionAuth;
         this.knowledgeService = knowledgeService;
+        this.conversations = conversations;
     }
 
-    public ChatResponseDto chat(ChatRequest request, HttpSession session) {
-        sessionAuth.requireCustomer(session);
+    public ChatResponseDto chat(ChatRequest request, UserSession caller) {
+        UserSession user = sessionAuth.requireCustomer(caller);
         String message = request == null ? null : request.getMessage();
         if (message == null || message.isBlank()) {
             throw new InvalidRequestException("message must not be blank.");
@@ -86,15 +91,30 @@ public class ChatAgentService {
         if (message.length() > MAX_MESSAGE_LENGTH) {
             throw new InvalidRequestException("message must be at most " + MAX_MESSAGE_LENGTH + " characters.");
         }
-        int turn = nextTurn(session);
-        String conversationId = conversationId(session);
+        // One message at a time per user: otherwise a second message could confirm a proposal made by a
+        // reply the user has not seen yet. shortcut: in-memory lock, one app instance only; move it to a
+        // busy flag on the ai_conversations row if the API ever runs as several instances.
+        ReentrantLock lock = inFlight.computeIfAbsent(user.getUserId(), id -> new ReentrantLock());
+        if (!lock.tryLock()) {
+            throw new ConflictException("The assistant is still answering your previous message. Try again in a moment.");
+        }
+        try {
+            return answer(message, caller, user);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private ChatResponseDto answer(String message, UserSession caller, UserSession user) {
+        TurnRecord turn = conversations.nextTurn(user.getUserId());
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("EEEE yyyy-MM-dd HH:mm"));
         try {
             String reply = AiText.of(chatClient.prompt()
                     .system(SYSTEM_PROMPT + "\nCurrent local date and time: " + now)
                     .user(message)
-                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
-                    .tools(new BookingTools(slotService, appointmentService, session, turn), knowledgeService)
+                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, turn.conversationId()))
+                    .tools(new BookingTools(slotService, appointmentService, conversations, caller,
+                            user.getUserId(), turn.turn()), knowledgeService)
                     .call()
                     .chatResponse());
             return new ChatResponseDto(reply);
@@ -105,21 +125,4 @@ public class ChatAgentService {
         }
     }
 
-    /** Atomic per session, so two concurrent messages can never share a turn number. */
-    private static int nextTurn(HttpSession session) {
-        synchronized (WebUtils.getSessionMutex(session)) {
-            int turn = session.getAttribute(TURN_KEY) instanceof Integer previous ? previous + 1 : 1;
-            session.setAttribute(TURN_KEY, turn);
-            return turn;
-        }
-    }
-
-    private static String conversationId(HttpSession session) {
-        if (session.getAttribute(CONVERSATION_KEY) instanceof String existing) {
-            return existing;
-        }
-        String id = UUID.randomUUID().toString();
-        session.setAttribute(CONVERSATION_KEY, id);
-        return id;
-    }
 }

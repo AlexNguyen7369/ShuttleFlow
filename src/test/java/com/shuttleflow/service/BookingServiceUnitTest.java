@@ -12,11 +12,9 @@ import com.shuttleflow.repository.NotificationRepository;
 import com.shuttleflow.repository.ProviderRepository;
 import com.shuttleflow.repository.SlotRepository;
 import com.shuttleflow.repository.SlotRepository.SlotRecord;
-import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.mock.web.MockHttpSession;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -75,7 +73,7 @@ class BookingServiceUnitTest {
     @Test
     void bookingRequiresSignedInCustomer() {
         assertThrows(UnauthorizedException.class,
-                () -> appointmentService.book(new BookingRequest(7L, null), new MockHttpSession()));
+                () -> appointmentService.book(new BookingRequest(7L, null), null));
         assertThrows(ForbiddenException.class,
                 () -> appointmentService.book(new BookingRequest(7L, null), provider(1)));
         verify(slots, never()).findByIdForUpdate(anyLong());
@@ -206,17 +204,12 @@ class BookingServiceUnitTest {
         return new AppointmentRecord(id, slotId, userId, status, start, 1);
     }
 
-    private static HttpSession customer(long userId) {
-        return session(new UserSession(userId, "customer@example.com", "Customer", "CUSTOMER", null));
+    private static UserSession customer(long userId) {
+        return new UserSession(userId, "customer@example.com", "Customer", "CUSTOMER", null);
     }
 
-    private static HttpSession provider(long providerId) {
-        return session(new UserSession(providerId, "provider@example.com", "Provider", "PROVIDER", providerId));
+    private static UserSession provider(long providerId) {
+        return new UserSession(providerId, "provider@example.com", "Provider", "PROVIDER", providerId);
     }
 
-    private static HttpSession session(UserSession user) {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(UserSession.ATTRIBUTE, user);
-        return session;
-    }
 }

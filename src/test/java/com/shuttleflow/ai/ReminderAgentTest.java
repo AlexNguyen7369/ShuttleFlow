@@ -1,5 +1,6 @@
 package com.shuttleflow.ai;
 
+import com.shuttleflow.auth.JwtService;
 import com.shuttleflow.dto.ReminderRunDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpSession;
+import jakarta.servlet.http.Cookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -122,11 +123,11 @@ class ReminderAgentTest {
 
     @Test
     void manualTriggerIsProviderOnly() throws Exception {
-        mvc.perform(post("/ai/reminders/run").session(login("alex@shuttleflow.com", "alex-test")))
+        mvc.perform(post("/ai/reminders/run").cookie(login("alex@shuttleflow.com", "alex-test")))
                 .andExpect(status().isForbidden());
         mvc.perform(post("/ai/reminders/run")).andExpect(status().isUnauthorized());
 
-        mvc.perform(post("/ai/reminders/run").session(login("court.manager@shuttleflow.com", "court-manager-test")))
+        mvc.perform(post("/ai/reminders/run").cookie(login("court.manager@shuttleflow.com", "court-manager-test")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.scanned").value(1))
                 .andExpect(jsonPath("$.queued").value(1))
@@ -159,9 +160,9 @@ class ReminderAgentTest {
         return jdbc.queryForObject("SELECT appointment_id FROM appointments WHERE slot_id = ?", Long.class, slotId);
     }
 
-    private MockHttpSession login(String email, String password) throws Exception {
-        return (MockHttpSession) mvc.perform(post("/auth/login").contentType("application/json")
+    private Cookie login(String email, String password) throws Exception {
+        return mvc.perform(post("/auth/login").contentType("application/json")
                         .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"))
-                .andExpect(status().isOk()).andReturn().getRequest().getSession(false);
+                .andExpect(status().isOk()).andReturn().getResponse().getCookie(JwtService.COOKIE_NAME);
     }
 }

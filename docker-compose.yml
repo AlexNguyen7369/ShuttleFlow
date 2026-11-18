@@ -25,5 +25,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       # Free Google AI Studio key; unset still boots, only the AI endpoints fail.
       GEMINI_API_KEY: ${GEMINI_API_KEY:-not-set}
+      # Signs login tokens; must be 32+ characters. Unset means a random secret per start.
+      JWT_SECRET: ${JWT_SECRET:-}
     ports:
       - "8080:8080"

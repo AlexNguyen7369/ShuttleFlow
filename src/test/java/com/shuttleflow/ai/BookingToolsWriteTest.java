@@ -1,43 +1,53 @@
 package com.shuttleflow.ai;
 
+import com.shuttleflow.auth.UserSession;
 import com.shuttleflow.dto.AppointmentDto;
 import com.shuttleflow.dto.BookingRequest;
+import com.shuttleflow.service.AiConversationService;
 import com.shuttleflow.service.AppointmentService;
 import com.shuttleflow.service.BookingConflictException;
 import com.shuttleflow.service.SlotService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.mock.web.MockHttpSession;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/** Confirm-before-write in code: services are mocked, so only the propose/confirm guard is tested. */
+/**
+ * Confirm-before-write in code: the booking services are mocked, and the pending action lives in the
+ * real ai_conversations table, so only the propose/confirm guard is tested.
+ */
+@SpringBootTest
 class BookingToolsWriteTest {
-    private SlotService slotService;
-    private AppointmentService appointmentService;
-    private MockHttpSession session;
+    private static final long ALEX = 3L;
+    @MockitoBean private SlotService slotService;
+    @MockitoBean private AppointmentService appointmentService;
+    @Autowired private AiConversationService conversations;
+    @Autowired private JdbcTemplate jdbc;
+    private UserSession session;
 
     @BeforeEach
     void setUp() {
-        slotService = mock(SlotService.class);
-        appointmentService = mock(AppointmentService.class);
-        session = new MockHttpSession();
+        jdbc.update("DELETE FROM ai_conversations");
+        session = new UserSession(ALEX, "alex@shuttleflow.com", "Alex Nguyen", "CUSTOMER", null);
         LocalDateTime start = LocalDateTime.now().plusDays(1).withNano(0);
         when(appointmentService.book(any(), any())).thenReturn(
                 new AppointmentDto(50, 7, "Court 3", "Singles Court Rental", start, start.plusHours(1), "BOOKED"));
     }
 
     private BookingTools turn(int number) {
-        return new BookingTools(slotService, appointmentService, session, number);
+        return new BookingTools(slotService, appointmentService, conversations, session, ALEX, number);
     }
 
     @Test
@@ -72,6 +82,15 @@ class BookingToolsWriteTest {
     }
 
     @Test
+    void aNewLoginClearsAPendingProposal() {
+        turn(1).proposeBooking(7);
+        conversations.reset(ALEX); // what login does
+
+        assertThat(turn(2).confirmBooking()).startsWith("Error: no booking is waiting");
+        verify(appointmentService, never()).book(any(), any());
+    }
+
+    @Test
     void confirmWithoutAnyProposalIsRefused() {
         assertThat(turn(5).confirmBooking()).startsWith("Error: no booking is waiting");
         assertThat(turn(5).confirmCancel()).startsWith("Error: no cancellation is waiting");
@@ -99,7 +118,8 @@ class BookingToolsWriteTest {
     void invalidIdsAreRejectedWithoutStoringAnything() {
         assertThat(turn(1).proposeBooking(0)).startsWith("Error:");
         assertThat(turn(1).proposeCancel(-1)).startsWith("Error:");
-        assertThat(session.getAttribute(PendingAction.SESSION_KEY)).isNull();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM ai_conversations WHERE pending_kind IS NOT NULL",
+                Integer.class)).isZero();
         verify(appointmentService, never()).cancel(anyLong(), any());
     }
 }
