@@ -61,7 +61,7 @@
 58. 2026-11-17 — Alex Nguyen — Fixed the PR #1 review findings: the ai_conversations row is now created outside any transaction (a caught duplicate key aborted the PostgreSQL transaction), chat is limited to one message at a time per user (409 otherwise) so a confirm cannot answer an unseen proposal, and the frontend signs out on an expired token and clears the user even if logout fails; added a PostgreSQL first-message race test and a concurrent-chat test; 146 tests pass, 18/18 PostgreSQL runs pass.
 59. 2026-11-17 — Alex Nguyen — Reviewed pull request #1 (Next.js frontend and JWT login), fixed its findings, and merged it into main as 007b18d with CI green on both the backend and frontend jobs.
 60. 2026-11-17 — Alex Nguyen — Updated the Milestone 4 report draft (Milestone4/m4-report.html and its artifact) with a section on the post-M4 JWT login and Next.js website, the database-backed assistant state, the PR review fixes, and the current test count.
-
+61. 2026-11-17 — Alex Nguyen — Started deployment on branch feature/deploy: added DatabaseInitializer, which loads schema.sql and seed.sql only into an empty database when DB_INIT_IF_EMPTY=true (with SQL_INIT_MODE=never), so a hosted database keeps its data across restarts; verified on PostgreSQL that data survives a restart; 148 tests pass.
 ## What's next
 **Rerun the Milestone 4 demo on the Next.js frontend (sign in, book and confirm by chat, policy questions, run reminders), then record the walkthrough video from Milestone4/video_script4.txt, including its JWT and Next.js section.**
 
