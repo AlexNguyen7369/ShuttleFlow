@@ -68,8 +68,9 @@
 65. 2026-11-17 — Alex Nguyen — Fixed the assistant asking twice before cancelling: cancel prompt rules now match booking (propose in the same reply, confirm right away on yes), and re-proposing the same action on the yes turn keeps it confirmable, with tests.
 66. 2026-11-17 — Alex Nguyen — Verified cancellation with real Gemini and fixed the remaining re-ask: a repeated proposeCancel/proposeBooking on the yes turn now tells the model to confirm instead of asking again; normal cancel, a stray second yes, and a one-message "cancel and confirm" all behave correctly in 3 of 3 runs.
 67. 2026-11-17 — Alex Nguyen — Pushed feature/deploy (through 60d1ba8) to GitHub so Render can read render.yaml for the Blueprint.
+68. 2026-11-22 — Alex Nguyen — Fast-forwarded main to feature/deploy (1b1e237: hosted-database init, PORT and pool settings, render.yaml, deploy docs, assistant confirm fixes) after mvn test passed 150 tests (3 PostgreSQL-only skipped), and confirmed the hosted API on Render answers /health with status and database UP against the Neon ShuttleFlow project.
 
 ## What's next
-**Create the hosted services: a Neon database, the Render Blueprint from render.yaml with the Neon and Gemini secrets, and the Vercel project (Root Directory frontend, API_URL set to the Render URL), then verify the live site end to end.**
+**Write the Final Milestone report (PDF): merge the Milestone 1–4 reports in FinalMilestone/ and add the new sections the final spec requires (use case and architecture diagrams, security and RBAC, system management and logging, enterprise standards mapping, limitations and future work).**
 
-**Why this is next:** the repository is ready to deploy, and only the account setup (which needs the owner's logins) remains before the app is live.
+**Why this is next:** the code, CI and hosting are done and on main, so the report is the remaining required deliverable besides the demo video, and the video script follows the report's structure.
