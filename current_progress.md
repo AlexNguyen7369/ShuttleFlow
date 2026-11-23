@@ -74,6 +74,7 @@
 71. 2026-11-22 — Alex Nguyen — Added the live demo links (Vercel frontend, Render API health) and the free-tier wake-up note to the top of the README.
 72. 2026-11-22 — Alex Nguyen — Wrote the Final Milestone report (FinalMilestone/final-report.html, printed to the 20-page final-report.pdf with headless Chrome) from the Milestone 1–4 reports, updated to the delivered system, with Mermaid use case, architecture, ER and commit-then-notify sequence diagrams and new sections on security and RBAC, system management and logging, Redis caching, enterprise standards mapping, testing (156 tests) and limitations.
 73. 2026-11-23 — Alex Nguyen — Added the free-tier hosting limits to the Final report's limitations table (Render 512 MB RAM, memory-only Key Value, Neon storage/compute caps, idle suspend and the 5-connection pool, seed dates that stop moving forward, Vercel Hobby non-commercial limits) and reprinted final-report.pdf (20 pages).
+74. 2026-11-23 — Alex Nguyen — Took non-code files out of git (FinalMilestone/, Milestone2–4/, docs/CMPE 172 Milestone 1.pdf: reports, specs, checklists, plans) and gitignored them so they stay local only, and removed the README and CLAUDE.md references to them.
 
 ## What's next
 **Record the 5–10 minute demo video: app running locally, booking flow, double-booking prevented, notification sent and fallback with the stub down, both AI agents with grounded Q&A, and the Redis cache; then submit the repository link, final-report.pdf and the unlisted video link on Canvas.**

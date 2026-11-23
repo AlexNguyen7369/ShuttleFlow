@@ -239,8 +239,7 @@ the losing request's outcome is final because the slot is taken.
   - `GET /metrics` exposes the counters.
   - Logs carry ids only, never passwords, session IDs or message bodies.
 
-See `docs/features/09-booking-notifications.md` (with the failure scenario) and
-`Milestone3/distribution-diagram.svg`.
+See `docs/features/09-booking-notifications.md` (with the failure scenario).
 
 ### Caching (Honors)
 
@@ -358,9 +357,6 @@ src/main/resources/
 src/test/                  unit, integration, and concurrency tests (H2 profile; optional PostgreSQL race)
 frontend/                  Next.js app (app/ pages, lib/api.js, next.config.mjs /api rewrite)
 docs/                      decisions, schema notes, feature specs 01-13
-Milestone1/                M1 walkthrough script (gitignored)
-Milestone2/                assignment PDF, plan, checklist, evidence report, summary, walkthrough scripts
-Milestone3/                assignment PDF, checklist, implementation plan, distribution diagram
 Dockerfile, docker-compose.yml, .env.example   container build and one-command run
 .github/workflows/ci.yml   CI: mvn -B verify with a PostgreSQL service
 tools/dashboard/           local project dashboard (python3 tools/dashboard/server.py)

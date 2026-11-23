@@ -2,6 +2,10 @@ target/
 /data/
 Milestone2/
 Milestone3/
+Milestone4/
+FinalMilestone/
+# Course specs and reports are kept locally, not in git
+docs/*.pdf
 *.class
 .idea/
 *.iml

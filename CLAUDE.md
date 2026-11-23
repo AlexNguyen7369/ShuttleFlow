@@ -1,6 +1,6 @@
 # ShuttleFlow
 
-Badminton court and coach booking system (CMPE 172 project). Requirements: `docs/CMPE 172 Milestone 1.pdf`; distilled in `docs/decisions.md` and `docs/schema-notes.md`.
+Badminton court and coach booking system (CMPE 172 project). Requirements: `docs/CMPE 172 Milestone 1.pdf` (local only, not in git); distilled in `docs/decisions.md` and `docs/schema-notes.md`.
 
 ## Stack
 
@@ -29,7 +29,7 @@ This is a single repository: the Maven project, the docs and the Claude workflow
 ```
 CLAUDE.md, current_progress.md          project rules and progress log
 .claude/                                agents/ (reviewer, test-writer) and skills/add-endpoint
-docs/                                   requirements PDF + decisions.md, schema-notes.md, features/
+docs/                                   decisions.md, schema-notes.md, features/
 pom.xml
 src/main/java/com/shuttleflow/
 ├── ShuttleflowApplication.java         entry point
@@ -78,7 +78,7 @@ Deployment: Next.js on Vercel (Root Directory `frontend`, `API_URL` = the API UR
 
 ## Commits (one per small feature)
 
-- Commit after every small, self-contained addition. One checklist item (e.g. one item in `Milestone3/m3-checklist.md`) is one commit. Don't batch several items into one commit.
+- Commit after every small, self-contained addition. One checklist item (e.g. one item in a milestone checklist; milestone folders are local only) is one commit. Don't batch several items into one commit.
 - Each commit includes the feature's tests, and `mvn test` must pass first. Tick the matching checklist box in the same commit.
 - Standing permission: commit each finished item without asking. Pushing still needs the user's go-ahead.
 
