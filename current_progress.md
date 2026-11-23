@@ -71,8 +71,9 @@
 68. 2026-11-22 — Alex Nguyen — Fast-forwarded main to feature/deploy (1b1e237: hosted-database init, PORT and pool settings, render.yaml, deploy docs, assistant confirm fixes) after mvn test passed 150 tests (3 PostgreSQL-only skipped), and confirmed the hosted API on Render answers /health with status and database UP against the Neon ShuttleFlow project.
 69. 2026-11-22 — Alex Nguyen — Tracked the Final Milestone spec and the Milestone 1–4 report PDFs in FinalMilestone/ plus the Milestone 4 spec PDF, and gitignored the unused root Neon CLI files (neon.ts, package.json, package-lock.json).
 70. 2026-11-22 — Alex Nguyen — Added the Honors Redis cache: @Cacheable on GET /slots (key = filters + page), @CacheEvict on booking, cancellation and provider slot create/remove with a transaction-aware Redis manager (evict after commit), a 60s TTL, 500 ms timeouts and a CacheErrorHandler that falls back to the database; redis in docker-compose.yml and a free Render Key Value in render.yaml; SlotCacheTest and CacheConfigTest; verified against local Redis (key stored, evicted on booking, /slots still 200 with Redis down); 156 tests pass.
+71. 2026-11-22 — Alex Nguyen — Added the live demo links (Vercel frontend, Render API health) and the free-tier wake-up note to the top of the README.
 
 ## What's next
-**Add the live Vercel and Render URLs to the README.**
+**Write the Final Milestone report (FinalMilestone/final-report.html, printed to final-report.pdf) covering every section the final spec lists.**
 
-**Why this is next:** graders open the repository first, and the final report and demo video point at the same live site.
+**Why this is next:** it is the last required deliverable besides the demo video, and the video follows its structure.

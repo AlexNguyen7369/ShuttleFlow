@@ -4,6 +4,11 @@
 
 **ShuttleFlow** is a badminton platform that starts as a court and coach booking system and grows into full head-to-head match tracking — live scores, shot data, and player stats — with an AI layer on top.
 
+**Live demo:** [shuttleflow-ecru.vercel.app](https://shuttleflow-ecru.vercel.app) (Next.js on Vercel) ·
+API [shuttleflow-api.onrender.com/health](https://shuttleflow-api.onrender.com/health) (Render, Neon PostgreSQL).
+The hosted database is seeded with the demo accounts listed under [Run](#run). The free API sleeps after
+15 minutes idle, so the first request can take about a minute.
+
 ## Vision
 
 Badminton players and coaches currently juggle group chats and spreadsheets to book courts and lessons, and have no structured record of games played against each other. ShuttleFlow closes both gaps in stages:
