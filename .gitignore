@@ -24,3 +24,8 @@ video_script2.md
 frontend/node_modules/
 frontend/.next/
 frontend/next-env.d.ts
+.neon
+node_modules/
+/neon.ts
+/package.json
+/package-lock.json

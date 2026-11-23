@@ -69,8 +69,9 @@
 66. 2026-11-17 — Alex Nguyen — Verified cancellation with real Gemini and fixed the remaining re-ask: a repeated proposeCancel/proposeBooking on the yes turn now tells the model to confirm instead of asking again; normal cancel, a stray second yes, and a one-message "cancel and confirm" all behave correctly in 3 of 3 runs.
 67. 2026-11-17 — Alex Nguyen — Pushed feature/deploy (through 60d1ba8) to GitHub so Render can read render.yaml for the Blueprint.
 68. 2026-11-22 — Alex Nguyen — Fast-forwarded main to feature/deploy (1b1e237: hosted-database init, PORT and pool settings, render.yaml, deploy docs, assistant confirm fixes) after mvn test passed 150 tests (3 PostgreSQL-only skipped), and confirmed the hosted API on Render answers /health with status and database UP against the Neon ShuttleFlow project.
+69. 2026-11-22 — Alex Nguyen — Tracked the Final Milestone spec and the Milestone 1–4 report PDFs in FinalMilestone/ plus the Milestone 4 spec PDF, and gitignored the unused root Neon CLI files (neon.ts, package.json, package-lock.json).
 
 ## What's next
-**Write the Final Milestone report (PDF): merge the Milestone 1–4 reports in FinalMilestone/ and add the new sections the final spec requires (use case and architecture diagrams, security and RBAC, system management and logging, enterprise standards mapping, limitations and future work).**
+**Add the Honors Redis cache: @Cacheable on GET /slots, @CacheEvict after commit on booking, cancellation and provider slot changes, a redis service in docker-compose.yml and a Render Key Value instance.**
 
-**Why this is next:** the code, CI and hosting are done and on main, so the report is the remaining required deliverable besides the demo video, and the video script follows the report's structure.
+**Why this is next:** the Honors track is the last code change before the final report, and the report's architecture, concurrency and testing sections must describe the cache.
