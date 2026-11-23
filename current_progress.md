@@ -72,8 +72,9 @@
 69. 2026-11-22 — Alex Nguyen — Tracked the Final Milestone spec and the Milestone 1–4 report PDFs in FinalMilestone/ plus the Milestone 4 spec PDF, and gitignored the unused root Neon CLI files (neon.ts, package.json, package-lock.json).
 70. 2026-11-22 — Alex Nguyen — Added the Honors Redis cache: @Cacheable on GET /slots (key = filters + page), @CacheEvict on booking, cancellation and provider slot create/remove with a transaction-aware Redis manager (evict after commit), a 60s TTL, 500 ms timeouts and a CacheErrorHandler that falls back to the database; redis in docker-compose.yml and a free Render Key Value in render.yaml; SlotCacheTest and CacheConfigTest; verified against local Redis (key stored, evicted on booking, /slots still 200 with Redis down); 156 tests pass.
 71. 2026-11-22 — Alex Nguyen — Added the live demo links (Vercel frontend, Render API health) and the free-tier wake-up note to the top of the README.
+72. 2026-11-22 — Alex Nguyen — Wrote the Final Milestone report (FinalMilestone/final-report.html, printed to the 20-page final-report.pdf with headless Chrome) from the Milestone 1–4 reports, updated to the delivered system, with Mermaid use case, architecture, ER and commit-then-notify sequence diagrams and new sections on security and RBAC, system management and logging, Redis caching, enterprise standards mapping, testing (156 tests) and limitations.
 
 ## What's next
-**Write the Final Milestone report (FinalMilestone/final-report.html, printed to final-report.pdf) covering every section the final spec lists.**
+**Record the 5–10 minute demo video: app running locally, booking flow, double-booking prevented, notification sent and fallback with the stub down, both AI agents with grounded Q&A, and the Redis cache; then submit the repository link, final-report.pdf and the unlisted video link on Canvas.**
 
-**Why this is next:** it is the last required deliverable besides the demo video, and the video follows its structure.
+**Why this is next:** the video and the Canvas submission are the only deliverables left, and the video follows the report's section order.
