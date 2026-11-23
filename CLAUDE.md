@@ -12,7 +12,7 @@ Badminton court and coach booking system (CMPE 172 project). Requirements: `docs
 
 ## Hard rules
 
-- **No ORM.** No JPA/Hibernate/Spring Data. Raw SQL through `JdbcTemplate` only.
+- **No ORM.** No JPA/Hibernate/Spring Data repositories (Spring Data Redis is only the `GET /slots` cache client). Raw SQL through `JdbcTemplate` only.
 - **Layering is strict:** `controller` → `service` → `repository` → DB. Controllers hold no logic; only repositories touch SQL; controllers return DTOs, never rows/entities.
 - **Double-booking is prevented by the database:** `UNIQUE (active_slot_id)` on `appointments` stays (it equals `slot_id` while `BOOKED`, `NULL` once `CANCELLED`, so history and rebooking work). Booking also locks the slot with `SELECT ... FOR UPDATE`. The service layer catches the constraint violation and returns "Court is already booked." Never replace it with a check-then-insert in Java.
 - **Pagination uses SQL `LIMIT` + `OFFSET`, 10 per page.**
@@ -39,7 +39,7 @@ src/main/java/com/shuttleflow/
 ├── dto/                                immutable request/response types
 ├── ai/                                 M4: BookingTools (agent tools), ChatAgentService, ReminderAgent, KnowledgeService (RAG)
 ├── auth/                               JwtService + JwtAuthFilter (login token), UserSession (caller identity), SessionAuth (401/403 guards)
-└── config/                             PasswordConfig (BCrypt), CorsConfig
+└── config/                             PasswordConfig (BCrypt), CorsConfig, CacheConfig (Redis slot cache), DatabaseInitializer
 src/main/resources/
 ├── application.properties              datasource + sql.init + Gemini (api-key only)
 ├── schema.sql                          DDL, drops and recreates tables on every boot

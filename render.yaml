@@ -35,3 +35,17 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      # Honors: GET /slots cache in Render Key Value (Redis-compatible).
+      - key: CACHE_TYPE
+        value: redis
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: shuttleflow-cache
+          property: connectionString
+
+  - type: keyvalue
+    name: shuttleflow-cache
+    plan: free                  # in-memory only; a restart just empties the cache
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []             # reachable only from Render services in the same region

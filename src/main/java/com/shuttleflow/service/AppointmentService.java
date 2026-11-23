@@ -10,6 +10,7 @@ import com.shuttleflow.repository.SlotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +49,7 @@ public class AppointmentService {
      * final (the slot is taken), so retrying could never succeed.
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    @CacheEvict(cacheNames = SlotService.OPEN_SLOTS_CACHE, allEntries = true)
     public AppointmentDto book(BookingRequest request, UserSession caller) {
         UserSession user = sessionAuth.requireCustomer(caller);
         if (request == null || request.getSlotId() == null || request.getSlotId() < 1) {
@@ -99,6 +101,7 @@ public class AppointmentService {
 
     /** Cancels an owned upcoming appointment and reopens its slot in one transaction. */
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    @CacheEvict(cacheNames = SlotService.OPEN_SLOTS_CACHE, allEntries = true)
     public void cancel(long appointmentId, UserSession caller) {
         UserSession user = sessionAuth.requireCustomer(caller);
         if (appointmentId < 1) {

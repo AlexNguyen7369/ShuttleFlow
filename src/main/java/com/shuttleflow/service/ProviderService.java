@@ -9,6 +9,7 @@ import com.shuttleflow.dto.SlotDto;
 import com.shuttleflow.repository.AppointmentRepository;
 import com.shuttleflow.repository.ProviderRepository;
 import com.shuttleflow.repository.SlotRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class ProviderService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = SlotService.OPEN_SLOTS_CACHE, allEntries = true)
     public SlotDto create(AvailabilityRequest request, UserSession caller) {
         UserSession user = sessionAuth.requireProvider(caller);
         validate(request);
@@ -52,6 +54,7 @@ public class ProviderService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = SlotService.OPEN_SLOTS_CACHE, allEntries = true)
     public void remove(long slotId, UserSession caller) {
         UserSession user = sessionAuth.requireProvider(caller);
         if (slotId < 1) {

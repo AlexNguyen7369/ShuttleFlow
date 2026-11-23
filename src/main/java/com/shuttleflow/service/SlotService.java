@@ -2,6 +2,7 @@ package com.shuttleflow.service;
 
 import com.shuttleflow.dto.SlotDto;
 import com.shuttleflow.repository.SlotRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,6 +12,8 @@ import java.time.LocalDate;
 public class SlotService {
 
     static final int PAGE_SIZE = 10;
+    /** Cache of GET /slots pages; evicted on every booking, cancellation and provider slot change. */
+    public static final String OPEN_SLOTS_CACHE = "openSlots";
 
     private final SlotRepository slotRepository;
 
@@ -18,6 +21,7 @@ public class SlotService {
         this.slotRepository = slotRepository;
     }
 
+    @Cacheable(OPEN_SLOTS_CACHE)
     public List<SlotDto> getAvailableSlots(Long providerId, String sessionType, Long serviceId,
                                            LocalDate date, int page) {
         if (page < 1) {

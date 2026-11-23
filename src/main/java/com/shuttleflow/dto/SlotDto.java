@@ -1,9 +1,13 @@
 package com.shuttleflow.dto;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public class SlotDto {
+/** Serializable so the Redis slot cache can store it with the default JDK serializer. */
+public class SlotDto implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final Long slotId;
     private final String providerName;

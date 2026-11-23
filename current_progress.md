@@ -70,8 +70,9 @@
 67. 2026-11-17 — Alex Nguyen — Pushed feature/deploy (through 60d1ba8) to GitHub so Render can read render.yaml for the Blueprint.
 68. 2026-11-22 — Alex Nguyen — Fast-forwarded main to feature/deploy (1b1e237: hosted-database init, PORT and pool settings, render.yaml, deploy docs, assistant confirm fixes) after mvn test passed 150 tests (3 PostgreSQL-only skipped), and confirmed the hosted API on Render answers /health with status and database UP against the Neon ShuttleFlow project.
 69. 2026-11-22 — Alex Nguyen — Tracked the Final Milestone spec and the Milestone 1–4 report PDFs in FinalMilestone/ plus the Milestone 4 spec PDF, and gitignored the unused root Neon CLI files (neon.ts, package.json, package-lock.json).
+70. 2026-11-22 — Alex Nguyen — Added the Honors Redis cache: @Cacheable on GET /slots (key = filters + page), @CacheEvict on booking, cancellation and provider slot create/remove with a transaction-aware Redis manager (evict after commit), a 60s TTL, 500 ms timeouts and a CacheErrorHandler that falls back to the database; redis in docker-compose.yml and a free Render Key Value in render.yaml; SlotCacheTest and CacheConfigTest; verified against local Redis (key stored, evicted on booking, /slots still 200 with Redis down); 156 tests pass.
 
 ## What's next
-**Add the Honors Redis cache: @Cacheable on GET /slots, @CacheEvict after commit on booking, cancellation and provider slot changes, a redis service in docker-compose.yml and a Render Key Value instance.**
+**Add the live Vercel and Render URLs to the README.**
 
-**Why this is next:** the Honors track is the last code change before the final report, and the report's architecture, concurrency and testing sections must describe the cache.
+**Why this is next:** graders open the repository first, and the final report and demo video point at the same live site.

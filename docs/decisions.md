@@ -221,3 +221,22 @@ Work happens on `feature/nextjs-jwt`; `main` stays the submitted Milestone 4.
    database still resets on every start.
 4. **Secrets live in the hosts.** Neon credentials and the Gemini key are entered in Render;
    Render generates `JWT_SECRET`. Nothing secret is committed.
+
+## Honors caching decisions — 2026-11-22
+
+1. **Spring Cache on `GET /slots` only.** `@Cacheable("openSlots")` on `SlotService.getAvailableSlots`
+   (key = all filters + page); `@CacheEvict(allEntries = true)` on `AppointmentService.book`/`cancel`
+   and `ProviderService.create`/`remove`. The AI agent books through `AppointmentService`, so it evicts too.
+2. **Redis through `spring-boot-starter-data-redis` as a cache client only.** Redis repositories are
+   disabled; no ORM or Spring Data repository is used. Values use the default JDK serializer, so
+   `SlotDto` is `Serializable` and stays immutable.
+3. **Evict after commit.** The Redis cache manager is `transactionAware()`, so eviction runs after the
+   booking commits; evicting before commit would let a concurrent browse re-cache the slot as open.
+   A browse that read the database just before the commit can still store its result after the
+   eviction; the TTL bounds that, and booking never reads the cache, so it cannot cause a double-booking.
+4. **60-second TTL.** Bounds staleness from anything that changes slots outside the service layer,
+   including slots whose start time passes and the local schema reset on restart.
+5. **Redis failure is not an outage.** A `CacheErrorHandler` logs and falls through to PostgreSQL,
+   which stays the only source of truth for double-booking.
+6. **Off by default.** `CACHE_TYPE` defaults to `none`; docker-compose and Render set `redis`. Tests run
+   uncached (they change slots with raw SQL), except `SlotCacheTest`, which uses the in-memory cache.

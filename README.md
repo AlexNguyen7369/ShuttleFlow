@@ -237,6 +237,26 @@ the losing request's outcome is final because the slot is taken.
 See `docs/features/09-booking-notifications.md` (with the failure scenario) and
 `Milestone3/distribution-diagram.svg`.
 
+### Caching (Honors)
+
+`GET /slots` is cached with Spring Cache (`@Cacheable` on `SlotService.getAvailableSlots`), one entry
+per filter and page, stored in Redis (`redis` service in `docker-compose.yml`, Render Key Value when
+hosted). Booking, cancelling and a provider adding or removing a slot each run
+`@CacheEvict(allEntries = true)`, and the Redis cache manager is transaction-aware, so the eviction
+happens after the transaction commits. That narrows the window in which a concurrent browse could
+re-cache a slot that was just booked; the 60-second TTL bounds the rest, and also drops slots whose
+start time has passed.
+
+The cache never decides a booking: `book` still locks the slot row and relies on `UNIQUE
+(active_slot_id)`. If Redis is down, `CacheConfig` logs a warning and reads the database.
+Without `CACHE_TYPE=redis` (plain `mvn spring-boot:run`, tests) caching is off. `SlotCacheTest`
+covers the hit and every eviction with an in-memory cache.
+
+```bash
+docker compose up --build
+curl -s localhost:8080/slots > /dev/null; docker compose exec redis redis-cli KEYS '*'   # openSlots::...
+```
+
 ### AI features (Milestone 4)
 
 - **Booking chat agent** (`POST /ai/chat`). Gemini calls tools that wrap the
